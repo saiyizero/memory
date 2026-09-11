@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
+
+<VBox xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.murong.ecp.tools.fx.controller.PaneStructureController"
+      styleClass="structure-main-container"
+      stylesheets="@../css/pane_structure.css">
+    
+    <!-- 页面标题区域 -->
+    <VBox styleClass="structure-header">
+        <HBox alignment="CENTER_LEFT" spacing="16">
+            <Label fx:id="projectTitleLabel" text="项目名称" styleClass="structure-title"/>
+            <Button fx:id="editTitleBtn" text="选择目录" styleClass="modern-button,modern-button-warning">
+                <graphic>
+                    <ImageView fitWidth="12" fitHeight="12">
+                        <Image url="@../image/remixB/edit-box-fill.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+            <Button fx:id="translationNoteBtn" text="注释翻译" styleClass="modern-button,modern-button-primary">
+                <graphic>
+                    <ImageView fitWidth="12" fitHeight="12">
+                        <Image url="@../image/remixB/settings-3-fill.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+
+        </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="12" style="-fx-padding: 8 0 0 0;">
+            <TextField fx:id="projectDescTextField" text="配置和管理项目结构，扫描目录并生成可视化结构树" 
+                       styleClass="modern-text-field,readonly-text-field" editable="false"
+                       prefWidth="400" maxWidth="500"/>
+            <Button fx:id="scanDirectoryBtn" text="扫描目录" styleClass="modern-button,modern-button-success">
+                <graphic>
+                    <ImageView fitWidth="12" fitHeight="12">
+                        <Image url="@../image/remixB/folder-2-line.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+        </HBox>
+    </VBox>
+    
+    <!-- 项目结构内容区域 -->
+    <VBox styleClass="structure-content" VBox.vgrow="ALWAYS">
+        <!-- 内容标题 -->
+        <HBox alignment="CENTER_LEFT" spacing="16">
+            <Label text="项目结构可视化" styleClass="modern-label"/>
+            <Label text="选择节点查看详细信息" styleClass="modern-label-secondary"/>
+        </HBox>
+        
+        <!-- 项目结构树和信息显示区域 -->
+        <HBox spacing="24" VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+            <!-- 项目结构树 -->
+            <VBox spacing="12" HBox.hgrow="NEVER" maxWidth="Infinity" maxHeight="Infinity">
+                <Label text="项目结构树" styleClass="modern-label"/>
+                <TreeView fx:id="projectTreeView" styleClass="modern-tree-view" 
+                          VBox.vgrow="ALWAYS" prefWidth="300" maxWidth="300" maxHeight="Infinity"/>
+            </VBox>
+            
+            <!-- 节点信息显示区域 -->
+            <VBox spacing="12" HBox.hgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="路径配置" styleClass="modern-label"/>
+                    <Button text="新增配置" styleClass="modern-button,modern-button-success" onAction="#addNewPathConfig">
+                        <graphic>
+                            <ImageView fitWidth="12" fitHeight="12">
+                                <Image url="@../image/remixB/apps-2-add-line.png"/>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                </HBox>
+                <TableView fx:id="pathTableView" styleClass="modern-table-view" 
+                          VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
+                    <columns>
+                        <TableColumn fx:id="dirTypeColumn" text="路径类型" styleClass="modern-table-column" prefWidth="100"/>
+                        <TableColumn fx:id="dirPathColumn" text="路径" styleClass="modern-table-column" prefWidth="400"/>
+                        <TableColumn fx:id="mainFlgColumn" text="主标识" styleClass="modern-table-column" prefWidth="60"/>
+                        <TableColumn fx:id="actionColumn" text="操作" styleClass="modern-table-column" prefWidth="50"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </HBox>
+    </VBox>
+    
+</VBox> 

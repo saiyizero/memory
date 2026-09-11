@@ -23,7 +23,9 @@
 
     <modules>
         <module>memory-lib</module>
-        <module>memory-core</module>
+        <module>memory-common</module>
+        <module>memory-service</module>
+        <module>memory-client</module>
     </modules>
 
     <dependencyManagement>

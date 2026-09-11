@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<VBox spacing="12.5" style="-fx-padding: 12.5 24 12.5 12.5;" alignment="TOP_LEFT" xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.murong.ecp.tools.fx.controller.PaneBizDictController">
+    <HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 16 0 0 0;">
+        <HBox spacing="8" alignment="CENTER_LEFT">
+            <ComboBox fx:id="appNameComboBox" promptText="选择微服务" prefWidth="120" />
+            <TextField fx:id="searchField" promptText="搜索业务字段名、数据库字段名、中文描述、英文描述" prefWidth="400" />
+            <Button fx:id="queryButton" text="查询" style="-fx-background-color: #ff4d4f; -fx-text-fill: white;" />
+            <Button fx:id="addButton" text="新增" style="-fx-background-color: #52c41a; -fx-text-fill: white;" />
+            <Button fx:id="importButton" text="导入Excel" style="-fx-background-color: #1890ff; -fx-text-fill: white;" />
+            <Button fx:id="exportButton" text="导出Excel" style="-fx-background-color: #722ed1; -fx-text-fill: white;" />
+        </HBox>
+        <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+            <Label fx:id="totalCountLabel" text="总数: 0" style="-fx-font-size: 12px; -fx-text-fill: #666;" />
+        </HBox>
+    </HBox>
+    <TableView fx:id="bizDictTableView" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="appNameColumn" prefWidth="50.0" text="归属"/>
+            <TableColumn fx:id="nameCamelColumn" prefWidth="100.0" text="业务字段名"/>
+            <TableColumn fx:id="nameSnakeColumn" prefWidth="100.0" text="数据库字段名"/>
+            <TableColumn fx:id="dependencyColumn" prefWidth="30.0" text=""/>
+            <TableColumn fx:id="typeColumn" prefWidth="80.0" text="字段类型"/>
+            <TableColumn fx:id="dbTypColumn" prefWidth="80.0" text="数据库类型"/>
+            <TableColumn fx:id="lengthColumn" prefWidth="45.0" text="长度"/>
+            <TableColumn fx:id="enumColumn" prefWidth="100.0" text="引用"/>
+            <TableColumn fx:id="enumRefColumn" prefWidth="0.0" text="枚举路径" visible="false"/>
+            <TableColumn fx:id="commentCnColumn" prefWidth="150.0" text="中文描述"/>
+            <TableColumn fx:id="commentEnColumn" prefWidth="160.0" text="英文描述"/>
+            <TableColumn fx:id="defaultValueColumn" prefWidth="60.0" text="默认值"/>
+            <TableColumn fx:id="statusColumn" prefWidth="80.0" text="状态"/>
+            <TableColumn fx:id="actionColumn" prefWidth="100.0" text="操作"/>
+        </columns>
+    </TableView>
+</VBox>

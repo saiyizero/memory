@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      spacing="10" styleClass="dialog-pane" stylesheets="@../css/main.css">
+    
+    <padding>
+        <Insets top="15" right="15" bottom="15" left="15"/>
+    </padding>
+    
+    <!-- 搜索区域 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="搜索:"/>
+        <TextField fx:id="searchField" promptText="输入关键字搜索..." HBox.hgrow="ALWAYS"/>
+    </HBox>
+    
+    <!-- 表格区域 -->
+    <TableView fx:id="bizDictTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="nameCamelColumn" text="驼峰命名" prefWidth="150"/>
+            <TableColumn fx:id="nameSnakeColumn" text="下划线命名" prefWidth="150"/>
+            <TableColumn fx:id="typeColumn" text="Java类型" prefWidth="100"/>
+            <TableColumn fx:id="commentCnColumn" text="中文注释" prefWidth="200"/>
+            <TableColumn fx:id="commentEnColumn" text="英文注释" prefWidth="200"/>
+        </columns>
+    </TableView>
+    
+    <!-- 按钮区域 -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="selectButton" text="选择" defaultButton="true"/>
+        <Button fx:id="cancelButton" text="取消" cancelButton="true"/>
+    </HBox>
+    
+</VBox>

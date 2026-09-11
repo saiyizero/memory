@@ -1,0 +1,90 @@
+.login-dialog {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #dee2e6;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.login-title {
+    -fx-text-fill: #495057;
+    -fx-font-weight: bold;
+}
+
+.login-message {
+    -fx-text-fill: #6c757d;
+    -fx-font-size: 12px;
+}
+
+.login-button {
+    -fx-background-color: #007bff;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 20px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.login-button:hover {
+    -fx-background-color: #0056b3;
+}
+
+.login-button:pressed {
+    -fx-background-color: #004085;
+}
+
+.login-button:disabled {
+    -fx-background-color: #6c757d;
+    -fx-opacity: 0.6;
+}
+
+.cancel-button {
+    -fx-background-color: #6c757d;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 20px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.cancel-button:hover {
+    -fx-background-color: #545b62;
+}
+
+.cancel-button:pressed {
+    -fx-background-color: #3d4449;
+}
+
+.login-hint {
+    -fx-text-fill: #6c757d;
+    -fx-font-style: italic;
+}
+
+/* 输入框样式 */
+.text-field, .password-field {
+    -fx-background-color: white;
+    -fx-border-color: #ced4da;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px 12px;
+    -fx-font-size: 14px;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #007bff;
+    -fx-border-width: 2px;
+}
+
+.text-field:hover, .password-field:hover {
+    -fx-border-color: #adb5bd;
+}
+
+/* 标签样式 */
+.label {
+    -fx-text-fill: #495057;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+}

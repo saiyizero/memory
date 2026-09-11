@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.TextAlignment?>
+
+<VBox alignment="CENTER" spacing="20.0" styleClass="login-dialog" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.murong.ecp.tools.fx.infrastructure.controller.LoginDialogController">
+   <children>
+      <Label text="Memory 系统登录" styleClass="login-title">
+         <font>
+            <Font size="24.0" />
+         </font>
+         <VBox.margin>
+            <Insets bottom="20.0" />
+         </VBox.margin>
+      </Label>
+      
+      <VBox alignment="CENTER" spacing="15.0" maxWidth="300.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+               <children>
+                  <Label text="用户名:" minWidth="60.0" />
+                  <TextField fx:id="usernameField" promptText="请输入用户名" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
+            
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+               <children>
+                  <Label text="密码:" minWidth="60.0" />
+                  <PasswordField fx:id="passwordField" promptText="请输入密码" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
+            
+            <Label fx:id="messageLabel" text="" styleClass="login-message" textAlignment="CENTER" maxWidth="300.0" wrapText="true" />
+            
+            <HBox alignment="CENTER" spacing="15.0">
+               <children>
+                  <Button fx:id="loginButton" text="登录" onAction="#handleLogin" styleClass="login-button" />
+                  <Button fx:id="cancelButton" text="退出" onAction="#handleCancel" styleClass="cancel-button" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+      
+      <Label text="首次使用请使用默认账号: admin / admin123" styleClass="login-hint" textAlignment="CENTER" maxWidth="300.0" wrapText="true">
+         <font>
+            <Font size="12.0" />
+         </font>
+         <VBox.margin>
+            <Insets top="20.0" />
+         </VBox.margin>
+      </Label>
+   </children>
+   <padding>
+      <Insets bottom="20.0" left="30.0" right="30.0" top="30.0" />
+   </padding>
+</VBox>

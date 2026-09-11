@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<SplitPane dividerPositions="0.4" xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.murong.ecp.tools.fx.controller.PaneEnumController"
+           prefWidth="900.0" prefHeight="600.0">
+    <items>
+        <VBox spacing="10" style="-fx-padding: 10;" alignment="TOP_LEFT">
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <TextField fx:id="filterField" promptText="筛选..." HBox.hgrow="ALWAYS"/>
+                <Button fx:id="clearButton" text="清空"/>
+                <Button fx:id="addEnumTypeButton" text="新增类型"/>
+            </HBox>
+            <TableView fx:id="enumTypeTableView" VBox.vgrow="ALWAYS" editable="true">
+                <columns>
+                    <TableColumn fx:id="selectColumn" text="" prefWidth="40"/>
+                    <TableColumn fx:id="enumNmeColumn" text="枚举名" prefWidth="130"/>
+                    <TableColumn fx:id="dbNameColumn" text="数据库名" prefWidth="130"/>
+                    <TableColumn fx:id="appNameColumn" text="归属" prefWidth="50" style="-fx-alignment: center;"/>
+                </columns>
+            </TableView>
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <CheckBox fx:id="selectAllCheckBox" text="全选/全不选"/>
+                <Button fx:id="deleteEnumTypeButton" text="删除类型" />
+            </HBox>
+        </VBox>
+        <VBox spacing="10" style="-fx-padding: 10;">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="枚举名:"/>
+                <TextField fx:id="enumNmeField" editable="false" prefWidth="150"/>
+                <Label text="数据库名:"/>
+                <TextField fx:id="dbNameField" prefWidth="150"/>
+                <Button fx:id="saveButton" text="保存"/>
+            </HBox>
+            <TableView fx:id="enumItemTable" VBox.vgrow="ALWAYS" editable="true">
+                <columns>
+                    <TableColumn fx:id="enumCdColumn" text="JAVA键" prefWidth="120"/>
+                    <TableColumn fx:id="enumValColumn" text="枚举值" prefWidth="80" style="-fx-alignment: center;"/>
+                    <TableColumn fx:id="descCnItemColumn" text="中文描述" prefWidth="160"/>
+                    <TableColumn fx:id="descEnItemColumn" text="英文描述" prefWidth="180"/>
+                    <TableColumn fx:id="deleteColumn" text="操作" prefWidth="60"/>
+                </columns>
+            </TableView>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="addEnumItemButton" text="新增枚举项"/>
+                <Button fx:id="deleteEnumItemButton" text="删除选中项"/>
+            </HBox>
+        </VBox>
+    </items>
+</SplitPane>

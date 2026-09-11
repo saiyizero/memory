@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.murong.ecp.tools.fx.controller.PaneTerminalController"
+      fx:id="root"
+      spacing="0" alignment="TOP_LEFT" style="-fx-background-color: #1e1e1e;">
+    
+    <!-- 终端横幅 - 连接配置和操作按钮 -->
+    <HBox spacing="16" alignment="CENTER_LEFT" style="-fx-background-color: linear-gradient(to bottom, #262a33, #1f232b); -fx-padding: 0 24 0 24; -fx-min-height: 52; -fx-max-height: 52; -fx-border-color: #14171f; -fx-border-width: 0 0 1 0; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 10, 0, 0, 1);">
+        <!-- IP地址 -->
+        <Label text="IP:" style="-fx-text-fill: #e2e8f0; -fx-font-size: 12.5px;"/>
+        <TextField fx:id="ipField" promptText="IP地址" style="-fx-background-color: #2a2f3a; -fx-text-fill: #e2e8f0; -fx-prompt-text-fill: #94a3b8; -fx-font-size: 12.5px; -fx-pref-width: 140; -fx-background-radius: 6; -fx-border-color: #3a3f4a; -fx-border-radius: 6; -fx-padding: 4 8; -fx-focus-color: #60a5fa; -fx-faint-focus-color: transparent;" HBox.hgrow="NEVER"/>
+        
+        <!-- 端口 -->
+        <Label text="端口:" style="-fx-text-fill: #e2e8f0; -fx-font-size: 12.5px;"/>
+        <TextField fx:id="portField" promptText="22" text="22" style="-fx-background-color: #2a2f3a; -fx-text-fill: #e2e8f0; -fx-prompt-text-fill: #94a3b8; -fx-font-size: 12.5px; -fx-pref-width: 70; -fx-background-radius: 6; -fx-border-color: #3a3f4a; -fx-border-radius: 6; -fx-padding: 4 8; -fx-focus-color: #60a5fa; -fx-faint-focus-color: transparent;" HBox.hgrow="NEVER"/>
+        
+        <!-- 用户名 -->
+        <Label text="用户:" style="-fx-text-fill: #e2e8f0; -fx-font-size: 12.5px;"/>
+        <TextField fx:id="usernameField" promptText="用户名" style="-fx-background-color: #2a2f3a; -fx-text-fill: #e2e8f0; -fx-prompt-text-fill: #94a3b8; -fx-font-size: 12.5px; -fx-pref-width: 100; -fx-background-radius: 6; -fx-border-color: #3a3f4a; -fx-border-radius: 6; -fx-padding: 4 8; -fx-focus-color: #60a5fa; -fx-faint-focus-color: transparent;" HBox.hgrow="NEVER"/>
+        
+        <!-- 密码 -->
+        <Label text="密码:" style="-fx-text-fill: #e2e8f0; -fx-font-size: 12.5px;"/>
+        <PasswordField fx:id="passwordField" promptText="密码" style="-fx-background-color: #2a2f3a; -fx-text-fill: #e2e8f0; -fx-prompt-text-fill: #94a3b8; -fx-font-size: 12.5px; -fx-pref-width: 120; -fx-background-radius: 6; -fx-border-color: #3a3f4a; -fx-border-radius: 6; -fx-padding: 4 8; -fx-focus-color: #60a5fa; -fx-faint-focus-color: transparent;" HBox.hgrow="NEVER"/>
+        
+        <!-- 操作按钮 -->
+        <Button fx:id="connectBtn" text="连接" style="-fx-background-color: rgba(37,99,235,0.18); -fx-border-color: #3b82f6; -fx-text-fill: #93c5fd; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 8; -fx-border-radius: 8; -fx-padding: 6 12; -fx-min-width: 84;" onAction="#handleConnect"/>
+        <Button fx:id="disconnectBtn" text="断开" style="-fx-background-color: rgba(239,68,68,0.18); -fx-border-color: #ef4444; -fx-text-fill: #fca5a5; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 8; -fx-border-radius: 8; -fx-padding: 6 12; -fx-min-width: 84;" onAction="#handleDisconnect" disable="true"/>
+        
+        <!-- 状态信息 -->
+        <HBox spacing="12" alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+            <Label fx:id="statusLabel" text="未连接" style="-fx-text-fill: #fb7185; -fx-font-size: 12.5px;"/>
+            <Label fx:id="currentPathLabel" text="~" style="-fx-text-fill: #6ee7b7; -fx-font-size: 12.5px;"/>
+        </HBox>
+    </HBox>
+    
+    <!-- 终端控制面板 - 参考IDEA终端样式 -->
+    <VBox spacing="0" VBox.vgrow="ALWAYS" style="-fx-background-color: #1e1e1e; -fx-border-color: #3c3c3c; -fx-border-width: 0 1 1 1;">
+        <!-- 终端内容区域 -->
+        <VBox spacing="0" VBox.vgrow="ALWAYS">
+            <!-- 终端输出区域 -->
+            <TextArea fx:id="terminalOutput" editable="false" wrapText="true" 
+                      style="-fx-font-family: 'Monaco', 'Consolas', 'Courier New', monospace; -fx-font-size: 13px; -fx-background-color: #1e1e1e; -fx-text-fill: #d4d4d4; -fx-control-inner-background: #1e1e1e; -fx-highlight-fill: #264f78; -fx-highlight-text-fill: #ffffff; -fx-caret-color: #ffffff; -fx-border-width: 0;"
+                      VBox.vgrow="ALWAYS"/>
+            
+            <!-- 命令输入区域 - 集成到输出区域 -->
+            <HBox spacing="4" alignment="CENTER_LEFT" style="-fx-background-color: #1e1e1e; -fx-padding: 2 8;">
+                <Label fx:id="promptLabel" text="~ $ " style="-fx-text-fill: #52c41a; -fx-font-family: 'Monaco', 'Consolas', 'Courier New', monospace; -fx-font-size: 13px;"/>
+                <TextField fx:id="commandInput" promptText="输入命令..." 
+                          style="-fx-font-family: 'Monaco', 'Consolas', 'Courier New', monospace; -fx-font-size: 13px; -fx-background-color: transparent; -fx-text-fill: #d4d4d4; -fx-prompt-text-fill: #808080; -fx-border-width: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
+                          prefHeight="40" HBox.hgrow="ALWAYS" onAction="#handleCommandEnter" onKeyPressed="#handleKeyPressed"/>
+            </HBox>
+        </VBox>
+    </VBox>
+    
+</VBox> 

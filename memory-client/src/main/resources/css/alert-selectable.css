@@ -1,0 +1,73 @@
+/* 弹出框文本选择样式 */
+.dialog-pane .content {
+    -fx-text-fill: black;
+    -fx-font-size: 14px;
+    -fx-font-family: "Microsoft YaHei", "SimSun", sans-serif;
+}
+
+/* TextArea样式 - 支持文本选择 */
+.dialog-pane .content .text-area {
+    -fx-text-fill: black;
+    -fx-font-size: 14px;
+    -fx-font-family: "Microsoft YaHei", "SimSun", sans-serif;
+    -fx-wrap-text: true;
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 8px;
+}
+
+/* 使TextArea中的文本可以被选中 */
+.dialog-pane .content .text-area .content {
+    -fx-background-color: white;
+    -fx-cursor: text;
+}
+
+/* 设置文本选择的高亮颜色 */
+.dialog-pane .content .text-area .content .text {
+    -fx-fill: black;
+    -fx-selection-fill: #0078d4;
+    -fx-highlight-fill: #0078d4;
+}
+
+/* 确保对话框内容区域可以接收焦点 */
+.dialog-pane .content {
+    -fx-focus-traversable: true;
+}
+
+/* 设置对话框样式 */
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+/* 按钮样式 */
+.dialog-pane .button {
+    -fx-background-color: #0078d4;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-padding: 8px 16px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button:hover {
+    -fx-background-color: #106ebe;
+}
+
+.dialog-pane .button:pressed {
+    -fx-background-color: #005a9e;
+}
+
+/* GridPane样式 */
+.dialog-pane .content .grid-pane {
+    -fx-hgap: 10px;
+    -fx-vgap: 10px;
+    -fx-padding: 10px;
+}
