@@ -1,4 +1,4 @@
-package com.murong.ecp.tools.fx.web;
+package com.murong.ecp.tools.fx.application;
 
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.enums.UserStatusEnum;

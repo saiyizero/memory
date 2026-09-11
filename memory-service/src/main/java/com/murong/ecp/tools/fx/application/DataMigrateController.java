@@ -1,4 +1,4 @@
-package com.murong.ecp.tools.fx.web;
+package com.murong.ecp.tools.fx.application;
 
 import com.murong.ecp.tools.fx.domain.service.database.DataMigrationService;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;

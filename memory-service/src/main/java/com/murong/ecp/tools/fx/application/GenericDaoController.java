@@ -1,4 +1,4 @@
-package com.murong.ecp.tools.fx.web;
+package com.murong.ecp.tools.fx.application;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
