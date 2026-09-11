@@ -85,3 +85,7 @@ mvn spring-boot:run -pl memory-client
 ## 分支说明
 develop  为早期2025年单体应用程序开发模式下设计的程序
 separate 为公司实际需求，要求对员工权限管理、信息共享有极高的项目需求
+
+## 脚本
+[memory-service-deploy.sh](memory-service-deploy.sh): 将模块[memory-service](memory-service)
+编译部署到服务器上，并成功启动

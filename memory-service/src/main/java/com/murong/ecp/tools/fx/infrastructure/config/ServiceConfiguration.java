@@ -28,6 +28,8 @@ public class ServiceConfiguration {
     private String username;
     @Value("${memory.datasource.password:}")
     private String password;
+    @Value("${memory.datasource.schema:}")
+    private String schema;
     @Value("${spring.datasource.hikari.maximum-pool-size:20}")
     private int maximumPoolSize;
     @Value("${spring.datasource.hikari.minimum-idle:5}")
@@ -76,6 +78,9 @@ public class ServiceConfiguration {
         config.setLeakDetectionThreshold(leakDetectionThreshold);
         config.setPoolName(poolName);
         config.setAutoCommit(true);
+        if (StringUtils.isNotBlank(schema) && (driverName.contains("postgres") || (jdbcUrl != null && jdbcUrl.contains("postgresql")))) {
+            config.setConnectionInitSql("SET search_path TO " + schema);
+        }
         return new HikariDataSource(config);
     }
 
