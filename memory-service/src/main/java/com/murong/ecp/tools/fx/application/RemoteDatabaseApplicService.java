@@ -12,11 +12,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/remote")
-public class RemoteDatabaseController {
+public class RemoteDatabaseApplicService {
 
     private final RemoteDatabaseService remoteDatabaseService;
 
-    public RemoteDatabaseController(RemoteDatabaseService remoteDatabaseService) {
+    public RemoteDatabaseApplicService(RemoteDatabaseService remoteDatabaseService) {
         this.remoteDatabaseService = remoteDatabaseService;
     }
 

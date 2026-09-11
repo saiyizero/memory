@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/handler")
-public class DatabaseHandlerController {
+public class DatabaseHandlerApplicService {
 
     private final GlobalProperties globalProperties;
     private final ObjectMapper objectMapper;
 
-    public DatabaseHandlerController(GlobalProperties globalProperties, ObjectMapper objectMapper) {
+    public DatabaseHandlerApplicService(GlobalProperties globalProperties, ObjectMapper objectMapper) {
         this.globalProperties = globalProperties;
         this.objectMapper = objectMapper;
     }

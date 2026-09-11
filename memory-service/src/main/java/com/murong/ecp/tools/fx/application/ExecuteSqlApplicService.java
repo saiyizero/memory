@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/sql")
-public class ExecuteSqlController {
+public class ExecuteSqlApplicService {
 
     private final ExecuteSqlService executeSqlService;
 
-    public ExecuteSqlController(ExecuteSqlService executeSqlService) {
+    public ExecuteSqlApplicService(ExecuteSqlService executeSqlService) {
         this.executeSqlService = executeSqlService;
     }
 

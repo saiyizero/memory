@@ -19,7 +19,7 @@ import java.lang.reflect.Parameter;
 
 @RestController
 @RequestMapping("/api/dao")
-public class GenericDaoController {
+public class GenericDaoApplicService {
 
     private static final String DAO_PACKAGE = "com.murong.ecp.tools.fx.infrastructure.repository.dao.";
 
@@ -27,7 +27,7 @@ public class GenericDaoController {
     private final ObjectMapper objectMapper;
     private final ApplicationContext applicationContext;
 
-    public GenericDaoController(GenericJdbcDao genericJdbcDao, ObjectMapper objectMapper, ApplicationContext applicationContext) {
+    public GenericDaoApplicService(GenericJdbcDao genericJdbcDao, ObjectMapper objectMapper, ApplicationContext applicationContext) {
         this.genericJdbcDao = genericJdbcDao;
         this.objectMapper = objectMapper;
         this.applicationContext = applicationContext;

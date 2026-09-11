@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/migrate")
-public class DataMigrateController {
+public class DataMigrateApplicService {
 
     private final DataMigrationService dataMigrationService;
 
-    public DataMigrateController(DataMigrationService dataMigrationService) {
+    public DataMigrateApplicService(DataMigrationService dataMigrationService) {
         this.dataMigrationService = dataMigrationService;
     }
 

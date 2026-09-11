@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class AuthController {
+public class AuthApplicService {
 
     private final UserInfoDao userInfoDao;
 
-    public AuthController(UserInfoDao userInfoDao) {
+    public AuthApplicService(UserInfoDao userInfoDao) {
         this.userInfoDao = userInfoDao;
     }
 
