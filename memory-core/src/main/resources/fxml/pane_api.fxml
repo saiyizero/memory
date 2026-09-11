@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TreeTableView?>
+<?import javafx.scene.control.TreeTableColumn?>
+
+<VBox spacing="12.5" style="-fx-padding: 12.5;" alignment="TOP_LEFT" xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.murong.ecp.tools.fx.controller.PaneApiController"
+           prefWidth="1000.0" prefHeight="750.0">
+    <GridPane hgap="12.5" vgap="6.25" style="-fx-padding: 0 0 12.5 0;">
+        <columnConstraints>
+            <ColumnConstraints hgrow="NEVER"/>
+            <ColumnConstraints hgrow="ALWAYS"/>
+            <ColumnConstraints hgrow="NEVER"/>
+            <ColumnConstraints hgrow="ALWAYS"/>
+        </columnConstraints>
+        <Label text="接口名称:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="apiNameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <Label text="接口路径:" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+        <TextField fx:id="apiPathField" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+        <Label text="请求方式:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="methodComboBox" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <Label text="接口描述:" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+        <TextField fx:id="apiDescField" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+        
+        <Label text="参数搜索:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <HBox spacing="6.25" GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="2">
+            <TextField fx:id="paramSearchField" promptText="输入参数名、中文描述或英文描述进行搜索" HBox.hgrow="ALWAYS"/>
+            <Button fx:id="searchButton" text="搜索" onAction="#searchParameter"/>
+        </HBox>
+        <HBox alignment="CENTER_RIGHT" spacing="6.25" GridPane.rowIndex="2" GridPane.columnIndex="3">
+            <Button fx:id="backButton" text="返回" onAction="#backToTransaction" />
+            <Button fx:id="cloneButton" text="克隆" onAction="#cloneApi" />
+            <Button fx:id="saveButton" onAction="#saveApi" text=" 保存 "/>
+        </HBox>
+    </GridPane>
+
+    <SplitPane dividerPositions="0.5" orientation="VERTICAL" VBox.vgrow="ALWAYS">
+        <TabPane fx:id="paramTabPane" VBox.vgrow="ALWAYS">
+            <tabs>
+                <Tab text="请求参数" closable="false">
+                    <TreeTableView fx:id="requestTable" VBox.vgrow="ALWAYS" editable="true" styleClass="custom-tree-table">
+                        <columns>
+                            <TreeTableColumn fx:id="reqParamNameColumn" prefWidth="150.0" text="参数名"/>
+                            <TreeTableColumn fx:id="reqParamTypeColumn" prefWidth="60.0" text="类型"/>
+                            <TreeTableColumn fx:id="reqParamLengthColumn" prefWidth="40.0" text="长度"/>
+                            <TreeTableColumn fx:id="reqParamEnumColumn" prefWidth="80.0" text="枚举"/>
+                            <TreeTableColumn fx:id="reqParamValueColumn" prefWidth="80.0" text="必输"/>
+                            <TreeTableColumn fx:id="reqParamRemarkColumn" prefWidth="180.0" text="描述"/>
+                            <TreeTableColumn fx:id="reqParamEnglishRemarkColumn" prefWidth="180.0" text="英文描述"/>
+                        </columns>
+                    </TreeTableView>
+                </Tab>
+                <Tab text="响应参数" closable="false">
+                    <TreeTableView fx:id="responseTable" VBox.vgrow="ALWAYS" editable="true" styleClass="custom-tree-table">
+                        <columns>
+                            <TreeTableColumn fx:id="respParamNameColumn" prefWidth="150.0" text="参数名"/>
+                            <TreeTableColumn fx:id="respParamTypeColumn" prefWidth="125.0" text="类型"/>
+                            <TreeTableColumn fx:id="respParamLengthColumn" prefWidth="75.0" text="长度"/>
+                            <TreeTableColumn fx:id="respParamValueColumn" prefWidth="80.0" text="必输"/>
+                            <TreeTableColumn fx:id="respParamRemarkColumn" prefWidth="250.0" text="描述"/>
+                            <TreeTableColumn fx:id="respParamEnglishRemarkColumn" prefWidth="180.0" text="英文描述"/>
+                            <TreeTableColumn fx:id="respParamEnumColumn" prefWidth="120.0" text="枚举"/>
+                        </columns>
+                    </TreeTableView>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </SplitPane>
+</VBox> 

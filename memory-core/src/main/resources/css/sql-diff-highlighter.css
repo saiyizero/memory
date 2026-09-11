@@ -1,0 +1,280 @@
+/* SQL差异对比样式 */
+.diff-dialog {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.diff-dialog .dialog-pane {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.diff-dialog .dialog-pane .header-panel {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 0 0 1 0;
+}
+
+.diff-dialog .dialog-pane .header-panel .label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.diff-dialog .dialog-pane .content {
+    -fx-background-color: #ffffff;
+    -fx-padding: 15;
+}
+
+/* CodeArea样式 */
+.code-area {
+    -fx-font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 12px;
+    -fx-control-inner-background: #f8f9fa;
+    -fx-text-fill: #2c3e50;
+    -fx-border-color: #dee2e6;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.code-area:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+}
+
+/* 行号样式 */
+.code-area .paragraph-box:has-caret {
+    -fx-background-color: #e3f2fd;
+}
+
+.code-area .line-number {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #7f8c8d;
+    -fx-font-size: 11px;
+    -fx-padding: 0 5 0 5;
+}
+
+/* DDL TextFlow样式 - 覆盖全局样式 */
+.ddl-text-flow {
+    -fx-padding: 0 !important;
+    -fx-line-spacing: 0 !important;
+    -fx-background-radius: 0 !important;
+    -fx-border-radius: 0 !important;
+}
+
+/* VirtualizedScrollPane样式 */
+.virtualized-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.virtualized-scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.virtualized-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: #ecf0f1;
+    -fx-pref-width: 12;
+}
+
+.virtualized-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #bdc3c7;
+    -fx-background-radius: 6;
+}
+
+.virtualized-scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #95a5a6;
+}
+
+.virtualized-scroll-pane .scroll-bar:horizontal {
+    -fx-background-color: #ecf0f1;
+    -fx-pref-height: 12;
+}
+
+.virtualized-scroll-pane .scroll-bar:horizontal .thumb {
+    -fx-background-color: #bdc3c7;
+    -fx-background-radius: 6;
+}
+
+.virtualized-scroll-pane .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #95a5a6;
+}
+
+/* 差异标记样式 - 现在使用内联样式，这里保留基础样式 */
+.diff-added {
+    -fx-background-color: #d4edda;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-padding: 2 4;
+}
+
+.diff-deleted {
+    -fx-background-color: #f8d7da;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-padding: 2 4;
+}
+
+.diff-modified {
+    -fx-background-color: #fff3cd;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-padding: 2 4;
+}
+
+.diff-unchanged {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 2 4;
+}
+
+/* 按钮样式 */
+.diff-resolve-btn {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+}
+
+.diff-resolve-btn:hover {
+    -fx-background-color: #229954;
+}
+
+.diff-resolve-btn:pressed {
+    -fx-background-color: #1e8449;
+}
+
+.diff-ignore-btn {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+}
+
+.diff-ignore-btn:hover {
+    -fx-background-color: #c0392b;
+}
+
+.diff-ignore-btn:pressed {
+    -fx-background-color: #a93226;
+}
+
+/* 标题样式 */
+.diff-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 0 0 10 0;
+}
+
+/* 分隔线样式 */
+.diff-separator {
+    -fx-background-color: #95a5a6;
+    -fx-border-color: #7f8c8d;
+    -fx-border-width: 1;
+}
+
+/* 选择文本样式 */
+.code-area .selection {
+    -fx-fill: #3498db;
+    -fx-opacity: 0.3;
+}
+
+/* 光标样式 */
+.code-area .caret {
+    -fx-stroke: #2c3e50;
+    -fx-stroke-width: 2;
+}
+
+/* VirtualizedTextField样式（如果需要使用） */
+.virtualized-text-field {
+    -fx-font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 12px;
+    -fx-control-inner-background: #f8f9fa;
+    -fx-text-fill: #2c3e50;
+    -fx-border-color: #dee2e6;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.virtualized-text-field:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+} 
+
+/* 字段级差异样式 */
+.field-name {
+    -fx-text-fill: #2c3e50;
+    -fx-font-weight: bold;
+}
+
+.field-type {
+    -fx-text-fill: #8e44ad;
+    -fx-font-weight: bold;
+}
+
+.field-length {
+    -fx-text-fill: #e67e22;
+    -fx-font-weight: bold;
+}
+
+.field-constraint {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}
+
+.field-default {
+    -fx-text-fill: #3498db;
+    -fx-font-weight: bold;
+}
+
+/* 字段差异高亮 */
+.field-diff-added {
+    -fx-background-color: #d4edda;
+    -fx-text-fill: #155724;
+    -fx-font-weight: bold;
+    -fx-padding: 1 2;
+    -fx-border-color: #c3e6cb;
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+}
+
+.field-diff-deleted {
+    -fx-background-color: #f8d7da;
+    -fx-text-fill: #721c24;
+    -fx-font-weight: bold;
+    -fx-padding: 1 2;
+    -fx-border-color: #f5c6cb;
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+}
+
+.field-diff-modified {
+    -fx-background-color: #fff3cd;
+    -fx-text-fill: #856404;
+    -fx-font-weight: bold;
+    -fx-padding: 1 2;
+    -fx-border-color: #ffeaa7;
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+} 
