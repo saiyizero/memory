@@ -12,7 +12,7 @@ fi
 REMOTE_DIR="${REMOTE_DIR:-/home/appadmin/memory}"
 REMOTE_PORT="${REMOTE_PORT:-22}"
 REMOTE_JAVA_HOME="${REMOTE_JAVA_HOME:-/opt/jdk}"
-APP_PORT="${APP_PORT:-8080}"
+APP_PORT="${APP_PORT:-9090}"
 APP_NAME="memory-service"
 JAR_NAME="${APP_NAME}.jar"
 

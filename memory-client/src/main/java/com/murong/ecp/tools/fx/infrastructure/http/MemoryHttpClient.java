@@ -53,7 +53,7 @@ public class MemoryHttpClient {
         if (StringUtils.isNotBlank(fileUrl)) {
             return StringUtils.removeEnd(fileUrl.trim(), "/");
         }
-        return "http://localhost:8080";
+        return "http://127.0.0.1:9090";
     }
 
     public <T> T post(String path, Object body, Class<T> responseType) {
