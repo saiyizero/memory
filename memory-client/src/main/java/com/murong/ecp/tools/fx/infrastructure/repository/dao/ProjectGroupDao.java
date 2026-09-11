@@ -6,41 +6,31 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * 项目组 HTTP 门面，SQL 在 memory-service 执行。
+ */
 @Repository
 public class ProjectGroupDao extends HttpDaoSupport<ProjectGroupPO> {
 
     public ProjectGroupPO queryCurGroup() {
-        String sql = "select * from project_group where cur_flag='Y'";
-        return super.queryOneBySql(sql);
+        return invoke("queryCurGroup", ProjectGroupPO.class);
     }
 
     public List<ProjectGroupPO> queryAllGroups() {
-        String sql = "select * from project_group order by group_name";
-        return super.queryListBySql(sql, ProjectGroupPO.class);
+        return invokeList("queryAllGroups", ProjectGroupPO.class);
     }
-    
-    /**
-     * 保存项目组
-     */
+
     public void save(ProjectGroupPO projectGroup) {
         super.insert(projectGroup);
     }
-    
-    /**
-     * 删除项目组
-     */
+
     public void deleteProjectGroup(String groupName) {
-        String sql = "delete from project_group where group_name=?";
-        super.updateBySql(sql, groupName);
+        invokeVoid("deleteProjectGroup", groupName);
     }
-    
-    /**
-     * 根据项目组名称查询项目组
-     */
+
     public ProjectGroupPO queryByGroupName(String groupName) {
         ProjectGroupPO queryPo = new ProjectGroupPO();
         queryPo.setGroupName(groupName);
         return super.queryOne(queryPo);
     }
-
-} 
+}

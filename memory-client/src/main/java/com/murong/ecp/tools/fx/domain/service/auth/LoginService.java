@@ -1,14 +1,15 @@
 package com.murong.ecp.tools.fx.domain.service.auth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.murong.ecp.tools.fx.domain.entity.DbConfig;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.enums.FlgEnum;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
-import com.murong.ecp.tools.fx.enums.UserStatusEnum;
+import com.murong.ecp.tools.fx.infrastructure.http.MemoryHttpClient;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.*;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.*;
-import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
+import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -18,13 +19,13 @@ import org.springframework.util.CollectionUtils;
 import java.util.List;
 
 /**
- * 登录验证服务
+ * 登录验证服务。用户校验走 memory-service /api/auth/login。
  */
 @Service
 public class LoginService {
 
     @Autowired
-    private UserInfoDao userInfoDao;
+    private MemoryHttpClient memoryHttpClient;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -37,7 +38,6 @@ public class LoginService {
 
 
     public void absGlobalPropes() {
-        // 延迟初始化模块信息，避免循环依赖
         UserProjGroupDao userProjGroupDao = applicationContext.getBean(UserProjGroupDao.class);
         UserProjGroupPO userProjGrp = userProjGroupDao.queryCurGroup();
         if(userProjGrp!=null){
@@ -50,7 +50,6 @@ public class LoginService {
                 globalProperties.setAppName(userProjSetting.getAppName());
                 globalProperties.setBasePath(userProjSetting.getBasePath());
 
-                //初始化数据库
                 DbConnectionPO dbConnReqPO = new DbConnectionPO();
                 dbConnReqPO.setProjectName(userProjSetting.getProjectName());
                 dbConnReqPO.setGroupName(userProjSetting.getGroupName());
@@ -87,35 +86,28 @@ public class LoginService {
     }
 
     /**
-     * 检查是否需要登录
-     * 如果登录信息表为空，则需要登录
+     * 检查是否已经登录。true 表示本地缓存凭证已通过服务端校验，可跳过登录框。
      */
     public boolean requiresLogin() {
         LocalSettingPO settingPO = new LocalSettingPO();
         settingPO.setStatus(FlgEnum.YES.getValue());
         LocalSettingPO localSettingPO = localSettingDao.queryOne(settingPO);
-        UserInfoPO userInfoPO = userInfoDao.queryByUsername(localSettingPO.getLinkUsrName());
-        if(userInfoPO!=null){
-            if(StringUtils.equals(userInfoPO.getPassword(),localSettingPO.getLinkPassWord())){
-                globalProperties.logIn(userInfoPO.getUserId(),userInfoPO.getUsername(),userInfoPO.getRealName(),userInfoPO.getRoles());
-                absGlobalPropes();
-                return true;
-            }else {
-                return false;
-            }
-        }else {
+        if (localSettingPO == null || StringUtils.isBlank(localSettingPO.getLinkUsrName())
+                || StringUtils.isBlank(localSettingPO.getLinkPassWord())) {
             return false;
         }
+        CrResult<UserInfoPO> result = validateLogin(localSettingPO.getLinkUsrName(), localSettingPO.getLinkPassWord());
+        return result != null && result.isSucess();
     }
 
     /**
      * 验证登录信息
      */
-    public CrResult validateLogin(String username, String password) {
+    public CrResult<UserInfoPO> validateLogin(String username, String password) {
 
-        if (username == null || username.trim().isEmpty() || 
+        if (username == null || username.trim().isEmpty() ||
             password == null || password.trim().isEmpty()) {
-            CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            CrResult<UserInfoPO> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
             if(StringUtils.isBlank(username)) {
                 crResult.setMsgInf("登录用户名称不允许为空");
             }
@@ -125,29 +117,26 @@ public class LoginService {
             return crResult;
         }
 
-        UserInfoPO userInfoPO = userInfoDao.queryByUsername(username);
-        if (userInfoPO != null) {
-            if(!StringUtils.equals(password,userInfoPO.getPassword())) {
-                CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
-                crResult.setMsgInf("密码验证失败");
-                return crResult;
-            }
-
-            if(!StringUtils.equals(userInfoPO.getStatus(), UserStatusEnum.ONLINE.getCode())) {
-                CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
-                crResult.setMsgInf("用户状态错误请联系管理员");
-                return crResult;
-            }
-
-            localSettingDao.updateLinkInfo(username,password);
-            globalProperties.logIn(userInfoPO.getUserId(),userInfoPO.getUsername(), userInfoPO.getRealName(),userInfoPO.getRoles());
-            absGlobalPropes();
-        }else {
-            CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
-            crResult.setMsgInf("用户不存在");
+        LoginRequest request = new LoginRequest();
+        request.setUsername(username.trim());
+        request.setPassword(password);
+        CrResult<UserInfoPO> remote = memoryHttpClient.post("/api/auth/login", request, new TypeReference<CrResult<UserInfoPO>>() {
+        });
+        if (remote == null) {
+            CrResult<UserInfoPO> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("memory-service 无响应");
+            return crResult;
+        }
+        if (!remote.isSucess() || remote.getData() == null) {
+            return remote;
         }
 
-        CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
+        UserInfoPO userInfoPO = remote.getData();
+        localSettingDao.updateLinkInfo(username,password);
+        globalProperties.logIn(userInfoPO.getUserId(),userInfoPO.getUsername(), userInfoPO.getRealName(),userInfoPO.getRoles());
+        absGlobalPropes();
+        CrResult<UserInfoPO> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
+        crResult.setData(userInfoPO);
         return crResult;
     }
 }

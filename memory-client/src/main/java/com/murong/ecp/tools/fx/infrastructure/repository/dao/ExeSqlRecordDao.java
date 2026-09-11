@@ -5,9 +5,11 @@ import com.murong.ecp.tools.fx.infrastructure.repository.po.ExeSqlRecordPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.query.ExeSqlRecordQuery;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * SQL 执行记录 HTTP 门面，SQL 在 memory-service 执行。
+ */
 @Repository
 public class ExeSqlRecordDao extends HttpDaoSupport<ExeSqlRecordPO> {
 
@@ -20,33 +22,10 @@ public class ExeSqlRecordDao extends HttpDaoSupport<ExeSqlRecordPO> {
     }
 
     public List<ExeSqlRecordPO> queryByDateRange(ExeSqlRecordQuery query) {
-        String beginDt=query.getBeginDt().replace("-", "");
-        String endDt=query.getEndDt().replace("-", "");
-        StringBuilder sql = new StringBuilder("SELECT * FROM exesql_record WHERE 1=1");
-        if (beginDt != null && !beginDt.isEmpty()) {
-            sql.append(" and exe_date >= '"+beginDt+"'");
-        }
-        if (endDt != null && !endDt.isEmpty()) {
-            sql.append(" and exe_date <= '"+endDt+"'");
-        }
-        if (query.getEnvName() != null && !query.getEnvName().isEmpty()) {
-            sql.append(" and env_name = '"+query.getEnvName()+"'");
-        }
-        if (query.getSchemaNm() != null && !query.getSchemaNm().isEmpty()) {
-            sql.append(" and schema_nm = '"+query.getSchemaNm()+"'");
-        }
-        if (query.getGroupName() != null && !query.getGroupName().isEmpty()) {
-            sql.append(" and group_name = '"+query.getGroupName()+"'");
-        }
-        if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
-            String kw = query.getKeyword().replace("'", "''");
-            sql.append(" and (exe_sql like '%"+kw+"%' or update_by like '%"+kw+"%')");
-        }
-        sql.append(" ORDER BY exe_date DESC, exe_time DESC");
-        return super.queryListBySql(sql.toString(), ExeSqlRecordPO.class);
+        return invokeList("queryByDateRange", ExeSqlRecordPO.class, query);
     }
 
     public void delete(ExeSqlRecordPO po) {
         super.delete(po);
     }
-} 
+}

@@ -36,9 +36,6 @@
           <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
           <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
           <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/mapstruct/mapstruct/1.5.5.Final/mapstruct-1.5.5.Final.jar" />
-          <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
-          <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
-          <entry name="$USER_HOME$/Application/maven/Repository/cbp_dev/org/mapstruct/mapstruct/1.5.5.Final/mapstruct-1.5.5.Final.jar" />
         </processorPath>
         <module name="memory-lib" />
       </profile>

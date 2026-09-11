@@ -23,4 +23,16 @@ public class RpcDaoRequest {
     private List<Object> params;
     private String orderBy;
     private String resultType;
+    /**
+     * 服务端 DAO 全限定类名，用于 /api/dao/invoke
+     */
+    private String daoType;
+    /**
+     * 要调用的 DAO 方法名
+     */
+    private String methodName;
+    /**
+     * 方法参数 JSON 数组
+     */
+    private JsonNode methodArgs;
 }

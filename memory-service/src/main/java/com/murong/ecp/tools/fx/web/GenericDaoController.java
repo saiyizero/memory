@@ -1,25 +1,36 @@
 package com.murong.ecp.tools.fx.web;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.murong.ecp.tools.fx.infrastructure.repository.GenericJdbcDao;
 import com.murong.ecp.tools.fx.infrastructure.rpc.RpcDaoRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.RpcDaoResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+
 @RestController
 @RequestMapping("/api/dao")
 public class GenericDaoController {
 
+    private static final String DAO_PACKAGE = "com.murong.ecp.tools.fx.infrastructure.repository.dao.";
+
     private final GenericJdbcDao genericJdbcDao;
     private final ObjectMapper objectMapper;
+    private final ApplicationContext applicationContext;
 
-    public GenericDaoController(GenericJdbcDao genericJdbcDao, ObjectMapper objectMapper) {
+    public GenericDaoController(GenericJdbcDao genericJdbcDao, ObjectMapper objectMapper, ApplicationContext applicationContext) {
         this.genericJdbcDao = genericJdbcDao;
         this.objectMapper = objectMapper;
+        this.applicationContext = applicationContext;
     }
 
     @PostMapping("/insert")
@@ -83,6 +94,54 @@ public class GenericDaoController {
     public RpcDaoResponse queryForMaps(@RequestBody RpcDaoRequest request) {
         Object result = genericJdbcDao.queryForMaps(request.getSql(), toParams(request));
         return RpcDaoResponse.ok(objectMapper.valueToTree(result));
+    }
+
+    @PostMapping("/invoke")
+    public RpcDaoResponse invoke(@RequestBody RpcDaoRequest request) {
+        try {
+            String daoType = request.getDaoType();
+            if (StringUtils.isBlank(daoType) || !daoType.startsWith(DAO_PACKAGE) || daoType.contains("/")) {
+                return RpcDaoResponse.fail("非法 DAO 类型");
+            }
+            Class<?> daoClass = Class.forName(daoType);
+            Object daoBean = applicationContext.getBean(daoClass);
+            JsonNode argsNode = request.getMethodArgs();
+            int argCount = (argsNode == null || argsNode.isNull() || !argsNode.isArray()) ? 0 : argsNode.size();
+            Method method = findMethod(daoBean.getClass(), request.getMethodName(), argCount);
+            method.setAccessible(true);
+            Object result = method.invoke(daoBean, convertArgs(method, argsNode));
+            return RpcDaoResponse.ok(objectMapper.valueToTree(result));
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            return RpcDaoResponse.fail("调用 DAO 失败: " + cause.getMessage());
+        } catch (Exception e) {
+            return RpcDaoResponse.fail("调用 DAO 失败: " + e.getMessage());
+        }
+    }
+
+    private Method findMethod(Class<?> type, String methodName, int argCount) {
+        for (Method method : type.getMethods()) {
+            if (method.isBridge() || method.isSynthetic()) {
+                continue;
+            }
+            if (method.getName().equals(methodName) && method.getParameterCount() == argCount) {
+                return method;
+            }
+        }
+        throw new RuntimeException("找不到方法: " + type.getName() + "." + methodName + "(" + argCount + ")");
+    }
+
+    private Object[] convertArgs(Method method, JsonNode argsNode) {
+        Parameter[] parameters = method.getParameters();
+        Object[] args = new Object[parameters.length];
+        if (parameters.length == 0 || argsNode == null || !argsNode.isArray()) {
+            return args;
+        }
+        for (int i = 0; i < parameters.length; i++) {
+            JavaType javaType = objectMapper.getTypeFactory().constructType(parameters[i].getParameterizedType());
+            args[i] = objectMapper.convertValue(argsNode.get(i), javaType);
+        }
+        return args;
     }
 
     private Object toEntity(RpcDaoRequest request) {

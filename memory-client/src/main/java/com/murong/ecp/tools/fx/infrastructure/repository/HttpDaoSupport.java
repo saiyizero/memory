@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.murong.ecp.tools.fx.infrastructure.http.MemoryHttpClient;
 import com.murong.ecp.tools.fx.infrastructure.rpc.RpcDaoRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.RpcDaoResponse;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.ParameterizedType;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 将原 DaoSupport 的 JDBC 调用转发到 memory-service。
+ * 客户端远程表访问门面：把原 JDBC 调用转发到 memory-service，不直连远程库。
  */
 public class HttpDaoSupport<T> {
 
@@ -40,19 +41,19 @@ public class HttpDaoSupport<T> {
     }
 
     public T queryOneBySql(String sql) {
-        RpcDaoRequest request = new RpcDaoRequest();
-        request.setSql(sql);
-        request.setEntityType(getGenericType().getName());
-        request.setResultType(getGenericType().getName());
-        RpcDaoResponse response = memoryHttpClient.postDao("/api/dao/queryOneBySql", request);
-        return memoryHttpClient.readData(response, getGenericType());
+        return queryOneBySql(sql, getGenericType(), new Object[0]);
     }
 
     public <E> E queryOneBySql(String sql, Class<E> clazz) {
+        return queryOneBySql(sql, clazz, new Object[0]);
+    }
+
+    public <E> E queryOneBySql(String sql, Class<E> clazz, Object... params) {
         RpcDaoRequest request = new RpcDaoRequest();
         request.setSql(sql);
         request.setEntityType(clazz.getName());
         request.setResultType(clazz.getName());
+        request.setParams(params == null ? Collections.emptyList() : Arrays.asList(params));
         RpcDaoResponse response = memoryHttpClient.postDao("/api/dao/queryOneBySql", request);
         return memoryHttpClient.readData(response, clazz);
     }
@@ -121,6 +122,34 @@ public class HttpDaoSupport<T> {
         return list == null ? Collections.emptyList() : list;
     }
 
+    /**
+     * 调用 memory-service 上同名 DAO 方法，SQL 只在服务端执行。
+     */
+    protected <R> R invoke(String methodName, Class<R> returnType, Object... args) {
+        RpcDaoResponse response = doInvoke(methodName, args);
+        JsonNode data = response.getData();
+        if (data == null || data.isNull() || returnType == Void.class || returnType == void.class) {
+            return null;
+        }
+        return objectMapper.convertValue(data, returnType);
+    }
+
+    protected <R> List<R> invokeList(String methodName, Class<R> elementType, Object... args) {
+        return readList(doInvoke(methodName, args), elementType);
+    }
+
+    protected void invokeVoid(String methodName, Object... args) {
+        doInvoke(methodName, args);
+    }
+
+    private RpcDaoResponse doInvoke(String methodName, Object... args) {
+        RpcDaoRequest request = new RpcDaoRequest();
+        request.setDaoType(AopUtils.getTargetClass(this).getName());
+        request.setMethodName(methodName);
+        request.setMethodArgs(objectMapper.valueToTree(args == null ? Collections.emptyList() : Arrays.asList(args)));
+        return memoryHttpClient.postDao("/api/dao/invoke", request);
+    }
+
     private RpcDaoRequest entityRequest(T entity) {
         RpcDaoRequest request = new RpcDaoRequest();
         request.setEntityType(entity.getClass().getName());
@@ -140,9 +169,13 @@ public class HttpDaoSupport<T> {
     @SuppressWarnings("unchecked")
     private Class<T> getGenericType() {
         try {
-            Type genericSuperclass = this.getClass().getGenericSuperclass();
-            if (genericSuperclass instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
+            Class<?> clazz = AopUtils.getTargetClass(this);
+            Type genericSuperclass = clazz.getGenericSuperclass();
+            while (!(genericSuperclass instanceof ParameterizedType) && clazz.getSuperclass() != null) {
+                clazz = clazz.getSuperclass();
+                genericSuperclass = clazz.getGenericSuperclass();
+            }
+            if (genericSuperclass instanceof ParameterizedType parameterizedType) {
                 return (Class<T>) parameterizedType.getActualTypeArguments()[0];
             }
             throw new RuntimeException("无法获取泛型类型");

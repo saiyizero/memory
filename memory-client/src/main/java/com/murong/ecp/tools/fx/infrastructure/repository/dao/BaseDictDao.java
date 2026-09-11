@@ -80,13 +80,6 @@ public class BaseDictDao extends HttpDaoSupport<BaseDictPO> {
      * 根据搜索文本查询基础字典列表
      */
     public List<BaseDictPO> searchByName(String searchText) {
-        if (searchText == null || searchText.trim().isEmpty()) {
-            return queryForList(new BaseDictPO());
-        } else {
-            String sql = "select * from base_dict where " +
-                    "name_snake like '%" + searchText.trim() + "%' or " +
-                    "comment_cn like '%" + searchText.trim() + "%'";
-            return queryListBySql(sql, BaseDictPO.class);
-        }
+        return invokeList("searchByName", BaseDictPO.class, searchText);
     }
 }
