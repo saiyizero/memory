@@ -8,11 +8,9 @@
 memory/
 ├── pom.xml                 # 父项目POM文件
 ├── memory-lib/             # 核心库模块
-│   ├── pom.xml            # 库模块POM文件
-│   └── src/main/java/     # 核心工具类和库代码
-└── memory-core/           # 应用启动模块
-    ├── pom.xml            # 应用模块POM文件
-    └── src/main/java/     # Spring Boot启动类和应用代码
+├── memory-common/          # 客户端与服务端共享代码
+├── memory-service/         # 远程服务（元数据库 / HTTP API）
+└── memory-client/          # JavaFX 桌面客户端
 ```
 
 ## 模块说明
@@ -27,15 +25,18 @@ memory/
 - **打包方式**: JAR包
 - **依赖**: Spring Framework核心组件，各种工具库
 
-### memory-core 模块
-- **作用**: Spring Boot应用启动模块
-- **包含**: 
-  - Spring Boot启动类
-  - Web应用支持
-  - JavaFX UI组件
-  - FreeMarker模板引擎
-- **打包方式**: 可执行JAR包
-- **依赖**: memory-lib模块 + Spring Boot启动器
+### memory-common 模块
+- **作用**: 客户端与服务端共享的 PO、枚举、RPC DTO
+- **打包方式**: JAR包
+
+### memory-service 模块
+- **作用**: 连接远程/元数据库，对外提供 HTTP API
+- **打包方式**: 可执行 JAR
+
+### memory-client 模块
+- **作用**: JavaFX 桌面客户端（本地 SQLite、界面、代码生成）
+- **打包方式**: 可执行 JAR
+- **依赖**: memory-lib + memory-common，通过 HTTP 调用 memory-service
 
 ## 构建和运行
 
@@ -51,11 +52,11 @@ mvn clean package -DskipTests
 
 ### 运行应用
 ```bash
-# 方式1: 使用Maven插件
-mvn spring-boot:run -pl memory-core
+# 先启动服务端
+mvn spring-boot:run -pl memory-service
 
-# 方式2: 直接运行JAR包
-java -jar memory-core/target/memory-core-0.0.1-SNAPSHOT.jar
+# 再启动客户端
+mvn spring-boot:run -pl memory-client
 ```
 
 ## 技术栈
@@ -71,15 +72,15 @@ java -jar memory-core/target/memory-core-0.0.1-SNAPSHOT.jar
 ## 开发说明
 
 1. **memory-lib模块**: 开发核心业务逻辑和工具类
-2. **memory-core模块**: 开发应用启动类和Web接口
-3. 两个模块通过Maven依赖关系进行集成
-4. 使用Spring Boot的自动配置功能简化开发
+2. **memory-common模块**: 共享模型和协议
+3. **memory-service模块**: 远程库访问与 REST 接口
+4. **memory-client模块**: JavaFX 客户端界面与本地缓存
 
 ## 注意事项
 
 - 项目使用Java 21，确保开发环境兼容
 - memory-lib模块不包含Spring Boot启动器，只提供核心功能
-- memory-core模块依赖memory-lib模块，提供完整的应用功能
+- 客户端通过 HTTP 调用 memory-service，不再直接连接远程业务库
 
 ## 分支说明
 develop  为早期2025年单体应用程序开发模式下设计的程序

@@ -33,11 +33,11 @@
 - **用法**：`./generate-license.sh "公司名" "产品名" "版本" "最低版本" "最高版本" "过期天数" "功能特性"`
 
 ### 3. 许可证管理器
-- **文件**：`memory-core/src/main/java/com/murong/ecp/tools/fx/infrastructure/license/LicenseManager.java`
+- **文件**：`memory-client/src/main/java/com/murong/ecp/tools/fx/infrastructure/license/LicenseManager.java`
 - **功能**：许可证验证、加密、解密
 
 ### 4. 许可证验证器
-- **文件**：`memory-core/src/main/java/com/murong/ecp/tools/fx/infrastructure/license/LicenseValidator.java`
+- **文件**：`memory-client/src/main/java/com/murong/ecp/tools/fx/infrastructure/license/LicenseValidator.java`
 - **功能**：应用启动时验证许可证
 
 ## 🚀 使用方法
@@ -117,7 +117,7 @@ javac LicenseGeneratorStandalone.java
 ## ⚙️ 配置说明
 
 ### 1. 应用配置
-在 `memory-core/src/main/resources/application.properties` 中：
+在 `memory-client/src/main/resources/application.properties` 中：
 
 ```properties
 # 许可证配置
@@ -187,7 +187,7 @@ memory/
 │   └── generate-license.sh                # 生成脚本
 ├── 文档/
 │   └── LICENSE_SYSTEM.md                  # 本文件
-└── memory-core/
+└── memory-client/
     └── src/main/java/com/murong/ecp/tools/fx/infrastructure/license/
         ├── LicenseManager.java            # 许可证管理器
         ├── LicenseValidator.java          # 许可证验证器

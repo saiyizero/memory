@@ -9,6 +9,12 @@ echo "  芯片架构: $(uname -m)"
 echo "  Java版本: $(java -version 2>&1 | head -n 1)"
 echo ""
 
+# memory-core 已拆分为 memory-client / memory-service，本脚本仍按旧单体打包，暂不可用
+if [ ! -d "memory-core" ]; then
+    echo "错误: memory-core 模块已删除。请改用 memory-client 与 memory-service 分别打包，或更新本脚本。"
+    exit 1
+fi
+
 # 检查Java版本
 JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
 if [ "$JAVA_VERSION" -lt "21" ]; then

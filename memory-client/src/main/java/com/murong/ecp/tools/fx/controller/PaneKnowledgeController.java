@@ -511,7 +511,7 @@ public class PaneKnowledgeController {
             
             // 尝试其他可能的路径
             String[] possiblePaths = {
-                "memory-core/src/main/resources/database/memory_embedded.db",
+                "memory-client/src/main/resources/database/memory_embedded.db",
                 "src/main/resources/database/memory_embedded.db",
                 "database/memory_embedded.db"
             };

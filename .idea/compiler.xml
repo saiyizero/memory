@@ -43,16 +43,12 @@
         <module name="memory-lib" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="memory-core" target="21" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="memory" options="-parameters" />
       <module name="memory-client" options="-parameters" />
       <module name="memory-common" options="-parameters" />
-      <module name="memory-core" options="-parameters" />
       <module name="memory-lib" options="-parameters" />
       <module name="memory-service" options="-parameters" />
     </option>
