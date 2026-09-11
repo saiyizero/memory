@@ -10,9 +10,9 @@ import com.murong.ecp.tools.fx.domain.service.interfaces.InterFaceEntityService;
 import com.murong.ecp.tools.fx.domain.service.terminal.SShDomainService;
 import com.murong.ecp.tools.fx.infrastructure.converter.DatabaseConvert;
 import com.murong.ecp.tools.fx.infrastructure.converter.InterfaceConvert;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.DebugLogDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ServerInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DebugLogRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ServerInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DebugLogPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ServerInfoPO;
@@ -120,13 +120,13 @@ public class PanRestFulController {
     @Autowired
     private InterFaceEntityService interFaceEntityService;
     @Autowired
-    private ServerInfoDao serverInfoDao;
+    private ServerInfoRpcService serverInfoRpcService;
     @Autowired
-    private CommonClassDao commonClassDao;
+    private CommonClassRpcService commonClassRpcService;
     @Autowired
     private GlobalProperties globalProperties;
     @Autowired
-    private DebugLogDao debugLogDao;
+    private DebugLogRpcService debugLogRpcService;
     @Autowired
     private SShDomainService sshDomainService;
 
@@ -521,7 +521,7 @@ public class PanRestFulController {
         String projectName = globalProperties.getProjectName();
         ServerInfoPO query = new ServerInfoPO();
         query.setProjectName(projectName);
-        List<ServerInfoPO> serverList = serverInfoDao.queryForList(query);
+        List<ServerInfoPO> serverList = serverInfoRpcService.queryForList(query);
         ObservableList<String> ipList = FXCollections.observableArrayList();
         ipList.add("请选择环境地址");
         ipList.add("http://127.0.0.1:"+globalProperties.getAppPort());
@@ -790,7 +790,7 @@ public class PanRestFulController {
                     } catch (Exception ignore) {
                         ignore.printStackTrace();
                     }
-                    debugLogDao.save(log);
+                    debugLogRpcService.save(log);
                     
                     // 关闭进度对话框
                     Platform.runLater(() -> {
@@ -980,13 +980,13 @@ public class PanRestFulController {
             String fullUrl = baseUrl + (url != null && !url.isEmpty() ? (url.startsWith("/") ? url : "/" + url) : "");
             DebugLogPO query = new DebugLogPO();
             query.setUrl(fullUrl);
-            logs = debugLogDao.queryForList(query);
+            logs = debugLogRpcService.queryForList(query);
         } else {
             DebugLogPO debugLogPO = new DebugLogPO();
             if(StringUtils.isNotBlank(url)) {
                 debugLogPO.setInterfaceName(url);
             }
-            logs = debugLogDao.queryForList(debugLogPO);
+            logs = debugLogRpcService.queryForList(debugLogPO);
         }
         debugLogCache = logs;
         ObservableList<String> items = FXCollections.observableArrayList();
@@ -1151,7 +1151,7 @@ public class PanRestFulController {
         }
 
         // 响应参数
-        CommonClassPO commonClass = commonClassDao.queryByClassName("AbstractBaseGDA");
+        CommonClassPO commonClass = commonClassRpcService.queryByClassName("AbstractBaseGDA");
         List<RxField> rspRxField = InterfaceConvert.jsonToFields(commonClass.getFieldsJson());
         rspRxField.addAll(entity.getResponse());
         List<RxField> respTree = buildFieldTree(rspRxField);
@@ -1310,7 +1310,7 @@ public class PanRestFulController {
         CommonClassPO commonClassPO = new CommonClassPO();
         commonClassPO.setClassPath(classPath);
         commonClassPO.setClassType("PCLS");
-        CommonClassPO commonClassRspPO = commonClassDao.queryOne(commonClassPO);
+        CommonClassPO commonClassRspPO = commonClassRpcService.queryOne(commonClassPO);
         return DatabaseConvert.jsonToFields(commonClassRspPO.getFieldsJson());
     }
 }

@@ -7,7 +7,7 @@ import com.murong.ecp.tools.fx.domain.service.interfaces.EnumsCdAnalyService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.JavaCodeService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.InterFaceEntityService;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
@@ -43,7 +43,7 @@ public class PaneTransactionController implements Initializable {
     @Autowired
     GlobalProperties globalProps;
     @Autowired
-    private InterfaceDataDao interfaceDataDao;
+    private InterfaceDataRpcService interfaceDataRpcService;
     @Autowired
     private GenerateDocService generateDocService;
     @Autowired
@@ -110,7 +110,7 @@ public class PaneTransactionController implements Initializable {
                 InterfaceDataPO reqPO = new InterfaceDataPO();
                 reqPO.setGroupName(globalProps.getGroupName());
                 reqPO.setAppName(globalProps.getAppName());
-                List<InterfaceDataPO> list = interfaceDataDao.queryForList(reqPO);
+                List<InterfaceDataPO> list = interfaceDataRpcService.queryForList(reqPO);
                 transactionList.setAll(list);
                 transactionTableView.setItems(transactionList);
                 transactionTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -291,7 +291,7 @@ public class PaneTransactionController implements Initializable {
                         // 选中ALL或未选中标签，显示全部
                         InterfaceDataPO newReqPO = new InterfaceDataPO();
                         newReqPO.setAppName(globalProps.getAppName());
-                        List<InterfaceDataPO> newList = interfaceDataDao.queryForList(newReqPO);
+                        List<InterfaceDataPO> newList = interfaceDataRpcService.queryForList(newReqPO);
                         transactionList.clear();
                         transactionList.setAll(newList);
                         transactionTableView.setItems(transactionList);
@@ -300,7 +300,7 @@ public class PaneTransactionController implements Initializable {
                         InterfaceDataPO newReqPO = new InterfaceDataPO();
                         newReqPO.setAppName(globalProps.getAppName());
                         newReqPO.setLableName(newVal);
-                        List<InterfaceDataPO> newList = interfaceDataDao.queryForList(newReqPO);
+                        List<InterfaceDataPO> newList = interfaceDataRpcService.queryForList(newReqPO);
                         transactionList.clear();
                         transactionList.setAll(newList);
                         transactionTableView.setItems(transactionList);
@@ -729,7 +729,7 @@ public class PaneTransactionController implements Initializable {
             try {
                 InterfaceDataPO reqPO = new InterfaceDataPO();
                 reqPO.setAppName(globalProps.getAppName());
-                List<InterfaceDataPO> list = interfaceDataDao.queryForList(reqPO);
+                List<InterfaceDataPO> list = interfaceDataRpcService.queryForList(reqPO);
                 transactionList.setAll(list);
                 transactionTableView.setItems(transactionList);
                 transactionTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -990,9 +990,9 @@ public class PaneTransactionController implements Initializable {
         reqPO.setGroupName(globalProps.getGroupName());
         List<InterfaceDataPO> list=null;
         if (name != null && !name.isEmpty()) {
-            list = interfaceDataDao.queryForSearch(reqPO.getAppName(),name);
+            list = interfaceDataRpcService.queryForSearch(reqPO.getAppName(),name);
         }else {
-            list = interfaceDataDao.queryForList(reqPO);
+            list = interfaceDataRpcService.queryForList(reqPO);
         }
         transactionList.setAll(list);
         transactionTableView.setItems(transactionList);

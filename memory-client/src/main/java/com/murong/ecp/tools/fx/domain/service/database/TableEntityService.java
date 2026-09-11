@@ -11,10 +11,10 @@ import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.cache.BizDictCache;
 import com.murong.ecp.tools.fx.infrastructure.converter.DatabaseConvert;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.TableDataDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.TableRecordDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.TableDataRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.TableRecordRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDataPO;
@@ -36,13 +36,13 @@ public class TableEntityService {
     @Autowired
     GenerateCodeService generateCodeService;
     @Autowired
-    TableRecordDao tableRecordDao;
+    TableRecordRpcService tableRecordRpcService;
     @Autowired
-    TableDataDao tableDataDao;
+    TableDataRpcService tableDataRpcService;
     @Autowired
-    CommonClassDao commonClassDao;
+    CommonClassRpcService commonClassRpcService;
     @Autowired
-    BizDictDao bizDictDao;
+    BizDictRpcService bizDictRpcService;
     @Autowired
     BizDictCache bizDictCache;
 
@@ -70,7 +70,7 @@ public class TableEntityService {
             dataIndex.setProjectName(globalPropes.getProjectName());
             dataIndex.setAppName(globalPropes.getAppName());
             dataIndex.setTableNameSnake(tableName);
-            TableDataPO resultPO = tableDataDao.queryOne(dataIndex);
+            TableDataPO resultPO = tableDataRpcService.queryOne(dataIndex);
             if (resultPO != null) {
                 System.out.println("表：" + tableName + "已存在");
                 continue;
@@ -103,7 +103,7 @@ public class TableEntityService {
                     po.setStatus(rxField.getBizUpdSts().getCode());
                 }
                 if(!bizDictCache.existsInPublicBizDict(po)){
-                    BizDictPO rspPO = bizDictDao.save(po);
+                    BizDictPO rspPO = bizDictRpcService.save(po);
                     rxField.setNameCamel(rspPO.getNameCamel());
                     rxField.setNameSnake(po.getNameSnake());
                     rxField.setType(rspPO.getType());
@@ -138,7 +138,7 @@ public class TableEntityService {
                 po.setGenerCdFlg(FlgEnum.YES.getValue());
                 po.setCreateTabFlg(FlgEnum.YES.getValue());
                 po.setStatus(DataStatusEnum.PENDING.getCode());
-                tableDataDao.insert(po);
+                tableDataRpcService.insert(po);
             }
         }
 
@@ -154,7 +154,7 @@ public class TableEntityService {
         String dropSql = "DROP TABLE " + tableEntity.getTableNameSnake() + ";";
         TableRecordPO record = DatabaseConvert.toRecordPO(tableEntity);
         record.setExecsqlJson(dropSql);
-        tableRecordDao.save(record);
+        tableRecordRpcService.save(record);
         try {
             DataBaseHandler dataBaseHandler = globalPropes.getInputDataBaseHandler();
             dataBaseHandler.executeSql(dropSql);
@@ -162,7 +162,7 @@ public class TableEntityService {
             TableRecordPO indexPO = new TableRecordPO();
             indexPO.setId(record.getId());
             record.setStatus(ExeStatusEnum.FAIL.getKey());
-            tableRecordDao.updateByOne(record,indexPO);
+            tableRecordRpcService.updateByOne(record,indexPO);
             if(!StringUtils.contains(e.getMessage(), "not exist")) {
                 CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
                 crResult.setMsgInf(e.getMessage());
@@ -176,13 +176,13 @@ public class TableEntityService {
         dataIndex.setProjectName(globalPropes.getProjectName());
         dataIndex.setAppName(globalPropes.getAppName());
         dataIndex.setTableNameSnake(tableEntity.getTableNameSnake());
-        tableDataDao.delete(dataIndex);
+        tableDataRpcService.delete(dataIndex);
 
         //更新执行成功
         TableRecordPO indexPO = new TableRecordPO();
         indexPO.setId(record.getId());
         record.setStatus(ExeStatusEnum.SUCCESS.getKey());
-        tableRecordDao.updateByOne(record,indexPO);
+        tableRecordRpcService.updateByOne(record,indexPO);
 
         return CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
     }
@@ -194,7 +194,7 @@ public class TableEntityService {
         String parentClass = tableEntity.getParentClass();
         List<RxField> rxFieldList=null;
         if(StringUtils.isNotBlank(parentClass)) {
-            CommonClassPO commonClassPO = commonClassDao.queryByClassPath(parentClass);
+            CommonClassPO commonClassPO = commonClassRpcService.queryByClassPath(parentClass);
             String fieldsJson = commonClassPO.getFieldsJson();
             rxFieldList = DatabaseConvert.jsonToFields(fieldsJson);
         }else {
@@ -314,7 +314,7 @@ public class TableEntityService {
         List<RxField> rxFieldList=new ArrayList<>();
         CommonClassPO commonClassPO =null;
         if(StringUtils.isNotBlank(parentClass)){
-            commonClassPO = commonClassDao.queryByClassPath(parentClass);
+            commonClassPO = commonClassRpcService.queryByClassPath(parentClass);
             String fieldsJson = commonClassPO.getFieldsJson();
             rxFieldList = DatabaseConvert.jsonToFields(fieldsJson);
         }
@@ -392,7 +392,7 @@ public class TableEntityService {
         if(ddlCrResult!=null){
             record.setExecsqlJson(ddlCrResult.getData());
         }
-        tableRecordDao.save(record);
+        tableRecordRpcService.save(record);
 
         try {
             if(StringUtils.equals(tableEntity.getCreateTabFlg(),FlgEnum.YES.getValue())){
@@ -403,7 +403,7 @@ public class TableEntityService {
                 TableRecordPO indexPO = new TableRecordPO();
                 indexPO.setId(record.getId());
                 record.setStatus(ExeStatusEnum.SUCCESS.getKey());
-                tableRecordDao.updateByOne(record,indexPO);
+                tableRecordRpcService.updateByOne(record,indexPO);
             }
 
             //存储数据
@@ -417,11 +417,11 @@ public class TableEntityService {
             dataIndex.setProjectName(po.getProjectName());
             dataIndex.setAppName(po.getAppName());
             dataIndex.setTableNameSnake(po.getTableNameSnake());
-            TableDataPO resultPO = tableDataDao.queryOne(dataIndex);
+            TableDataPO resultPO = tableDataRpcService.queryOne(dataIndex);
             if(resultPO != null) {
-                tableDataDao.updateByOne(po,dataIndex);
+                tableDataRpcService.updateByOne(po,dataIndex);
             }else {
-                tableDataDao.insert(po);
+                tableDataRpcService.insert(po);
             }
 
         }catch (Exception e) {
@@ -429,7 +429,7 @@ public class TableEntityService {
             TableRecordPO indexPO = new TableRecordPO();
             indexPO.setId(record.getId());
             record.setStatus(ExeStatusEnum.FAIL.getKey());
-            tableRecordDao.updateByOne(record,indexPO);
+            tableRecordRpcService.updateByOne(record,indexPO);
 
             CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
             crResult.setMsgInf(e.getMessage());

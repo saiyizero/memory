@@ -1,7 +1,7 @@
 package com.murong.ecp.tools.fx.domain.view;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumGroupPO;
@@ -77,7 +77,7 @@ public class EnumSelectDialog {
     private ObservableList<EnumDictPO> enumItems = FXCollections.observableArrayList();
     
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
     
     // 拖拽相关变量
     private boolean isDragging = false;
@@ -325,12 +325,12 @@ public class EnumSelectDialog {
     private void loadEnumTypeList() {
         try {
             // 从数据库加载枚举类型列表
-            if (enumTypeList != null && enumDictDao != null) {
+            if (enumTypeList != null && enumDictRpcService != null) {
                 enumTypeList.clear();
 
                 EnumDictPO enumDictReqPO = new EnumDictPO();
                 enumDictReqPO.setGroupName(globalPropes.getGroupName());
-                List<EnumGroupPO> allEnumTypes =enumDictDao.groupByEnumNme(enumDictReqPO,globalPropes.getAppName());
+                List<EnumGroupPO> allEnumTypes =enumDictRpcService.groupByEnumNme(enumDictReqPO,globalPropes.getAppName());
                 enumTypeList.addAll(allEnumTypes);
             }
         } catch (Exception e) {
@@ -340,10 +340,10 @@ public class EnumSelectDialog {
     
     private void loadEnumItems(String enumNme) {
         try {
-            if (enumDictDao != null) {
+            if (enumDictRpcService != null) {
                 EnumDictPO query = new EnumDictPO();
                 query.setEnumNme(enumNme);
-                List<EnumDictPO> items = enumDictDao.queryForList(query);
+                List<EnumDictPO> items = enumDictRpcService.queryForList(query);
                 if (enumItems != null) {
                     enumItems.setAll(items);
                 }

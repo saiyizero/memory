@@ -8,9 +8,9 @@ import com.murong.ecp.tools.fx.domain.entity.InterFaceEntity;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.TranslationResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
@@ -37,13 +37,13 @@ public class TranslationService {
     private GlobalProperties globalPropes;
 
     @Autowired
-    private InterfaceDataDao interfaceDataDao;
+    private InterfaceDataRpcService interfaceDataRpcService;
     
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
 
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
 
     private static final int MAX_RETRIES = 3; // 最大重试次数
 
@@ -87,7 +87,7 @@ public class TranslationService {
             InterfaceDataPO infcDataPO = new InterfaceDataPO();
             infcDataPO.setGroupName(globalPropes.getGroupName());
             infcDataPO.setProjectName(globalPropes.getProjectName());
-            List<InterfaceDataPO> interfaceDataList = interfaceDataDao.queryForList(infcDataPO);
+            List<InterfaceDataPO> interfaceDataList = interfaceDataRpcService.queryForList(infcDataPO);
             
             if (interfaceDataList.isEmpty()) {
                 result.setSuccess(false);
@@ -163,7 +163,7 @@ public class TranslationService {
             EnumDictPO enumDictPO = new EnumDictPO();
             enumDictPO.setGroupName(globalPropes.getGroupName());
             enumDictPO.setProjectName(globalPropes.getProjectName());
-            List<EnumDictPO> enumDataList = enumDictDao.queryForList(enumDictPO);
+            List<EnumDictPO> enumDataList = enumDictRpcService.queryForList(enumDictPO);
             
             if (enumDataList.isEmpty()) {
                 result.setSuccess(false);
@@ -236,7 +236,7 @@ public class TranslationService {
             // 查询所有BizDict数据
             BizDictPO bizDictPO = new BizDictPO();
             bizDictPO.setGroupName(globalPropes.getGroupName());
-            List<BizDictPO> bizDictList = bizDictDao.queryForList(bizDictPO);
+            List<BizDictPO> bizDictList = bizDictRpcService.queryForList(bizDictPO);
 
             if (bizDictList.isEmpty()) {
                 result.setSuccess(false);
@@ -824,7 +824,7 @@ public class TranslationService {
         whereData.setTransName(interfaceData.getTransName());
         
         try {
-            interfaceDataDao.updateByOne(updateData, whereData);
+            interfaceDataRpcService.updateByOne(updateData, whereData);
         } catch (Exception e) {
             System.err.println("更新接口数据失败: " + e.getMessage());
         }
@@ -847,7 +847,7 @@ public class TranslationService {
         whereData.setAppName(enumData.getAppName());
         
         try {
-            enumDictDao.updateByOne(updateData, whereData);
+            enumDictRpcService.updateByOne(updateData, whereData);
         } catch (Exception e) {
             System.err.println("更新枚举数据失败: " + e.getMessage());
         }
@@ -869,7 +869,7 @@ public class TranslationService {
         whereData.setAppName(bizDict.getAppName());
         whereData.setNameCamel(bizDict.getNameCamel());
         try {
-            bizDictDao.updateByOne(updateData, whereData);
+            bizDictRpcService.updateByOne(updateData, whereData);
         } catch (Exception e) {
             System.err.println("更新BizDict数据失败: " + e.getMessage());
         }

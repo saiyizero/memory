@@ -2,9 +2,9 @@ package com.murong.ecp.tools.fx.domain.service.common;
 
 import com.murong.ecp.tools.fx.domain.entity.DbConfig;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.DbConnectionDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectFolderDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DbConnectionPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectFolderPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
@@ -17,17 +17,17 @@ import java.util.List;
 @Service
 public class EnvironmentService {
     @Autowired
-    private ProjectSettingDao projectSettingDao;
+    private ProjectSettingRpcService projectSettingRpcService;
     @Autowired
-    private ProjectFolderDao projectFolderDao;
+    private ProjectFolderRpcService projectFolderRpcService;
     @Autowired
-    private DbConnectionDao dbConnectionDao;
+    private DbConnectionRpcService dbConnectionRpcService;
 
     /**
      * 切换当前激活项目，保证cur_flag唯一
      */
     public void switchCurrentEnv(String groupName, String projectName) {
-        projectSettingDao.switchProject(groupName, projectName);
+        projectSettingRpcService.switchProject(groupName, projectName);
     }
 
     public void rebuildGlobalPropes(GlobalProperties globalPropes, ProjectSettingPO projectEnv){
@@ -35,7 +35,7 @@ public class EnvironmentService {
         dbConnReqPO.setProjectName(projectEnv.getProjectName());
         dbConnReqPO.setGroupName(projectEnv.getGroupName());
         dbConnReqPO.setMainFlg("1");
-        DbConnectionPO mainDbConn = dbConnectionDao.queryOne(dbConnReqPO);
+        DbConnectionPO mainDbConn = dbConnectionRpcService.queryOne(dbConnReqPO);
         if(mainDbConn != null){
             DbConfig dbConfig = new DbConfig(mainDbConn);
             globalPropes.setDbConfig(dbConfig);
@@ -55,7 +55,7 @@ public class EnvironmentService {
         projectFolderPO.setProjectName(projectEnv.getProjectName());
         projectFolderPO.setGroupName(projectEnv.getGroupName());
         projectFolderPO.setAppName(projectEnv.getAppName());
-        List<ProjectFolderPO> projectDirLst = projectFolderDao.queryForList(projectFolderPO);
+        List<ProjectFolderPO> projectDirLst = projectFolderRpcService.queryForList(projectFolderPO);
         if (!CollectionUtils.isEmpty(projectDirLst)) {
             globalPropes.setModules(projectDirLst);
         }

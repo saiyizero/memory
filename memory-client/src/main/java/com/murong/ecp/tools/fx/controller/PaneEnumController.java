@@ -2,7 +2,7 @@ package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.GenerateSqlService;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumGroupPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
 public class PaneEnumController implements Initializable {
 
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
 
     @Autowired
     private GlobalProperties globalPropes;
@@ -149,7 +149,7 @@ public class PaneEnumController implements Initializable {
                 // 查询该类型下所有枚举项
                 EnumDictPO query = new EnumDictPO();
                 query.setEnumNme(selectedType.getEnumNme());
-                List<EnumDictPO> items = enumDictDao.queryForList(query);
+                List<EnumDictPO> items = enumDictRpcService.queryForList(query);
                 
                 if (items == null || items.isEmpty()) {
                     continue; // 跳过没有枚举项的类型
@@ -295,7 +295,7 @@ public class PaneEnumController implements Initializable {
             for (EnumDictPO po : enumItems) {
                 po.setEnumNme(enumNme);
             }
-            enumDictDao.saveAll(enumItems);
+            enumDictRpcService.saveAll(enumItems);
             new Alert(Alert.AlertType.INFORMATION, "保存成功").showAndWait();
             loadEnumTypeList();
         });
@@ -326,7 +326,7 @@ public class PaneEnumController implements Initializable {
     private void loadEnumTypeList() {
         EnumDictPO enumDictPO = new EnumDictPO();
         enumDictPO.setGroupName(globalPropes.getGroupName());
-        List<EnumGroupPO> enumGroupPOS = enumDictDao.groupByEnumNme(enumDictPO,null);
+        List<EnumGroupPO> enumGroupPOS = enumDictRpcService.groupByEnumNme(enumDictPO,null);
         enumTypeList.setAll(enumGroupPOS);
         // 监听每个PO的selectedProperty
         for (EnumGroupPO po : enumTypeList) {
@@ -340,7 +340,7 @@ public class PaneEnumController implements Initializable {
     private void loadEnumItems(String enumNme) {
         EnumDictPO enumDictPO = new EnumDictPO();
         enumDictPO.setEnumNme(enumNme);
-        List<EnumDictPO> items = enumDictDao.queryForList(enumDictPO);
+        List<EnumDictPO> items = enumDictRpcService.queryForList(enumDictPO);
         enumItems.setAll(items);
     }
 }

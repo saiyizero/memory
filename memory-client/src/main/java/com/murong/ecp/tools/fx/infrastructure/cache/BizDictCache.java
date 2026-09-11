@@ -1,7 +1,7 @@
 package com.murong.ecp.tools.fx.infrastructure.cache;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class BizDictCache {
     
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
     
     @Autowired
     private GlobalProperties globalProperties;
@@ -59,7 +59,7 @@ public class BizDictCache {
         BizDictPO queryPO = new BizDictPO();
         queryPO.setAppName("pub");
         queryPO.setGroupName(globalProperties.getGroupName());
-        List<BizDictPO> allBizDicts = bizDictDao.queryForList(queryPO);
+        List<BizDictPO> allBizDicts = bizDictRpcService.queryForList(queryPO);
         
         // 清空现有缓存
         globalBizDictCache.clear();

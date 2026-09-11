@@ -2,8 +2,8 @@ package com.murong.ecp.tools.fx.domain.service;
 
 import com.murong.ecp.tools.fx.domain.entity.RxField;
 import com.murong.ecp.tools.fx.domain.entity.InterFaceEntity;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import freemarker.template.Configuration;
@@ -17,9 +17,9 @@ import java.util.*;
 @Service
 public class GenerateDocService {
     @Autowired
-    private InterfaceDataDao interfaceDataDao;
+    private InterfaceDataRpcService interfaceDataRpcService;
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
     @Autowired
     private Configuration freemarkerConfig;
     public String generateTransactionDoc(List<Map<String, String>> selectedTransNames) {
@@ -30,7 +30,7 @@ public class GenerateDocService {
                     InterfaceDataPO query = new InterfaceDataPO();
                     query.setTransName(mapSet.get("transName"));
                     query.setInterfaceName(mapSet.get("interfaceName"));
-                    InterfaceDataPO result = interfaceDataDao.queryOne(query);
+                    InterfaceDataPO result = interfaceDataRpcService.queryOne(query);
                     if (result != null) {
                         return convertToEntity(result);
                     } else {
@@ -57,7 +57,7 @@ public class GenerateDocService {
                 EnumDictPO query = new EnumDictPO();
                 query.setEnumNme(arr[0]);
                 query.setEnumRef(arr[1]);
-                List<EnumDictPO> found = enumDictDao.queryForList(query);
+                List<EnumDictPO> found = enumDictRpcService.queryForList(query);
                 if (found != null && !found.isEmpty()) {
                     enumGroupMap.put(key, found);
                 }

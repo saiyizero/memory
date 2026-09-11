@@ -6,10 +6,10 @@ import com.murong.ecp.tools.fx.domain.entity.InterFaceEntity;
 import com.murong.ecp.tools.fx.domain.service.interfaces.JavaCodeService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.InterFaceEntityService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrSpringContextHolder;
 import com.murong.ecp.tools.fx.infrastructure.view.valueobj.BizFieldVo;
@@ -79,11 +79,11 @@ public class PaneApiController implements Initializable {
     @Autowired
     private InterFaceEntityService interFaceEntityService;
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
     @Autowired
-    private InterfaceDataDao interfaceDataDao;
+    private InterfaceDataRpcService interfaceDataRpcService;
     @Autowired
-    private UserProjSettingDao projectSettingDao;
+    private UserProjSettingRpcService projectSettingRpcService;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -420,7 +420,7 @@ public class PaneApiController implements Initializable {
         DefaultStringConverter converter = new DefaultStringConverter();
         
         // 请求参数名列使用条件单元格工厂，根据类型决定是否弹出业务字段选择弹出框
-        reqParamNameColumn.setCellFactory(col -> new ConditionalEditingTreeCell(converter, bizDictDao, bizDict -> {
+        reqParamNameColumn.setCellFactory(col -> new ConditionalEditingTreeCell(converter, bizDictRpcService, bizDict -> {
             // 当用户选择业务字段时，自动填充相关字段
             TreeItem<BizFieldVo> currentItem = reqParamNameColumn.getTreeTableView().getSelectionModel().getSelectedItem();
             if (currentItem != null && currentItem.getValue() != null) {
@@ -459,7 +459,7 @@ public class PaneApiController implements Initializable {
         reqParamEnumColumn.setCellFactory(col -> new EditingTreeCell(converter, "enumValues"));
         
         // 响应参数名列使用TreeBizDictEditingCell，弹出业务字段选择弹出框
-        respParamNameColumn.setCellFactory(col -> new ConditionalEditingTreeCell(converter, bizDictDao, bizDict -> {
+        respParamNameColumn.setCellFactory(col -> new ConditionalEditingTreeCell(converter, bizDictRpcService, bizDict -> {
             // 当用户选择业务字段时，自动填充相关字段
             TreeItem<BizFieldVo> currentItem = respParamNameColumn.getTreeTableView().getSelectionModel().getSelectedItem();
             if (currentItem != null && currentItem.getValue() != null) {
@@ -1116,16 +1116,16 @@ public class PaneApiController implements Initializable {
     public static class TreeBizDictEditingCell extends TreeTableCell<BizFieldVo, String> {
         private final TextField textField = new TextField();
         private final DefaultStringConverter converter;
-        private final BizDictDao bizDictDao;
+        private final BizDictRpcService bizDictRpcService;
         private final OnBizDictSelectedListener listener;
         
         public interface OnBizDictSelectedListener {
             void onBizDictSelected(BizDictPO bizDict);
         }
         
-        public TreeBizDictEditingCell(DefaultStringConverter converter, BizDictDao bizDictDao, OnBizDictSelectedListener listener) {
+        public TreeBizDictEditingCell(DefaultStringConverter converter, BizDictRpcService bizDictRpcService, OnBizDictSelectedListener listener) {
             this.converter = converter;
-            this.bizDictDao = bizDictDao;
+            this.bizDictRpcService = bizDictRpcService;
             this.listener = listener;
             
             // 为TextField添加拼音过滤功能
@@ -1202,7 +1202,7 @@ public class PaneApiController implements Initializable {
             String searchText = textField.getText();
             
             // 调用BizDictDao搜索业务字段，不通过SQL筛选，直接查询所有数据
-            List<BizDictPO> bizDictList = bizDictDao.searchByName(null);
+            List<BizDictPO> bizDictList = bizDictRpcService.searchByName(null);
             
             if (bizDictList.isEmpty()) {
                 // 如果没有找到匹配的业务字段，显示提示
@@ -1239,16 +1239,16 @@ public class PaneApiController implements Initializable {
     public static class ConditionalEditingTreeCell extends TreeTableCell<BizFieldVo, String> {
         private final TextField textField = new TextField();
         private final DefaultStringConverter converter;
-        private final BizDictDao bizDictDao;
+        private final BizDictRpcService bizDictRpcService;
         private final OnBizDictSelectedListener listener;
         
         public interface OnBizDictSelectedListener {
             void onBizDictSelected(BizDictPO bizDict);
         }
         
-        public ConditionalEditingTreeCell(DefaultStringConverter converter, BizDictDao bizDictDao, OnBizDictSelectedListener listener) {
+        public ConditionalEditingTreeCell(DefaultStringConverter converter, BizDictRpcService bizDictRpcService, OnBizDictSelectedListener listener) {
             this.converter = converter;
-            this.bizDictDao = bizDictDao;
+            this.bizDictRpcService = bizDictRpcService;
             this.listener = listener;
             
             // 为TextField添加拼音过滤功能
@@ -1338,7 +1338,7 @@ public class PaneApiController implements Initializable {
             String searchText = textField.getText();
             
             // 调用BizDictDao搜索业务字段，不通过SQL筛选，直接查询所有数据
-            List<BizDictPO> bizDictList = bizDictDao.searchByName(null);
+            List<BizDictPO> bizDictList = bizDictRpcService.searchByName(null);
             
             if (bizDictList.isEmpty()) {
                 // 如果没有找到匹配的业务字段，显示提示
@@ -1723,9 +1723,9 @@ public class PaneApiController implements Initializable {
             
             List<InterfaceDataPO> list;
             if (StringUtils.isNotBlank(searchText)) {
-                list = interfaceDataDao.queryForSearch(reqPO.getAppName(), searchText);
+                list = interfaceDataRpcService.queryForSearch(reqPO.getAppName(), searchText);
             } else {
-                list = interfaceDataDao.queryForList(reqPO);
+                list = interfaceDataRpcService.queryForList(reqPO);
             }
             
             // 更新表格数据
@@ -1755,7 +1755,7 @@ public class PaneApiController implements Initializable {
             queryPO.setGroupName(currentGroupName);
             queryPO.setShowFlag("Y"); // 只显示启用的项目
             
-            List<UserProjSettingPO> projectList = projectSettingDao.queryForList(queryPO);
+            List<UserProjSettingPO> projectList = projectSettingRpcService.queryForList(queryPO);
             
             // 清空下拉框并添加项目名称
             projectComboBox.getItems().clear();
@@ -1802,7 +1802,7 @@ public class PaneApiController implements Initializable {
             queryPO.setProjectName(selectedProject);
             queryPO.setGroupName(globalProps.getGroupName());
             
-            InterfaceDataPO resultPO = interfaceDataDao.queryOne(queryPO);
+            InterfaceDataPO resultPO = interfaceDataRpcService.queryOne(queryPO);
             if (resultPO == null) {
                 ViewUtils.alertForFail("未找到选中的API详情数据");
                 return;

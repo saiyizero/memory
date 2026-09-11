@@ -4,8 +4,8 @@ package com.murong.ecp.tools.fx.controller;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.entity.ServiceInfoEntity;
 import com.murong.ecp.tools.fx.domain.service.terminal.SShDomainService;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ServerInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ServerInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ServerInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
@@ -44,9 +44,9 @@ public class PaneServerMngController implements Initializable {
     @Autowired
     private GlobalProperties globalProps;
     @Autowired
-    private ServerInfoDao serverInfoDao;
+    private ServerInfoRpcService serverInfoRpcService;
     @Autowired
-    private UserProjSettingDao UserProjSettingDao;
+    private UserProjSettingRpcService UserProjSettingRpcService;
     @Autowired
     private SShDomainService sshDomainService;
     @FXML
@@ -224,7 +224,7 @@ public class PaneServerMngController implements Initializable {
                 query.setEnvName(env);
             }
 
-            List<ServerInfoPO> serverList = serverInfoDao.queryForList(query);
+            List<ServerInfoPO> serverList = serverInfoRpcService.queryForList(query);
             refreshServerList(convertServerInfoListToServiceList(serverList), globalProps.getGroupName());
         });
     }
@@ -307,7 +307,7 @@ public class PaneServerMngController implements Initializable {
                             delPo.setGroupName(entity.getGroupName());
                             delPo.setProjectName(ms.getProjectName());
                             delPo.setAppName(ms.getAppName());
-                            serverInfoDao.delete(delPo);
+                            serverInfoRpcService.delete(delPo);
                             // 刷新页面
                             List<ServiceInfoEntity> newServiceList = sshDomainService.getServiceList(globalProps.getGroupName());
                             refreshServerList(newServiceList, globalProps.getGroupName());
@@ -408,7 +408,7 @@ public class PaneServerMngController implements Initializable {
                 ServerInfoPO update = new ServerInfoPO();
                 update.setEnvName(newVal);
                 query.setIp(ipField.getText());
-                serverInfoDao.updateByOne(update,query);
+                serverInfoRpcService.updateByOne(update,query);
             }
         });
         Label ipLabel = new Label("IP:");
@@ -565,7 +565,7 @@ public class PaneServerMngController implements Initializable {
         Platform.runLater(() -> {
             try {
                 List<String> projectNames = new ArrayList<>();
-                List<ServerInfoPO> allServers = serverInfoDao.queryForList(new ServerInfoPO());
+                List<ServerInfoPO> allServers = serverInfoRpcService.queryForList(new ServerInfoPO());
                 for (ServerInfoPO po : allServers) {
                     if (po.getProjectName() != null && !po.getProjectName().trim().isEmpty()) {
                         projectNames.add(po.getProjectName().trim());
@@ -634,7 +634,7 @@ public class PaneServerMngController implements Initializable {
         if ("按文件名搜索".equals(searchType) && selectedProject != null && !"请选择".equals(selectedProject)) {
             query.setProjectName(selectedProject);
         }
-        List<ServerInfoPO> serverList = serverInfoDao.queryForList(query);
+        List<ServerInfoPO> serverList = serverInfoRpcService.queryForList(query);
         // 保存当前搜索的服务器列表
         currentSearchServerList = serverList;
 
@@ -764,7 +764,7 @@ public class PaneServerMngController implements Initializable {
         
         Platform.runLater(() -> {
             try {
-                List<UserProjSettingPO> tempList = UserProjSettingDao.queryForList(new UserProjSettingPO());
+                List<UserProjSettingPO> tempList = UserProjSettingRpcService.queryForList(new UserProjSettingPO());
                 projectParamListRef.set(tempList);
                 List<String> projectNames = new ArrayList<>();
                 for (UserProjSettingPO po : tempList) {
@@ -881,7 +881,7 @@ public class PaneServerMngController implements Initializable {
             query.setGroupName(groupName);
             query.setProjectName(projectName);
             query.setAppName(appName);
-            ServerInfoPO exist = serverInfoDao.queryOne(query);
+            ServerInfoPO exist = serverInfoRpcService.queryOne(query);
             if (exist != null) {
                 ViewUtils.alertForFail("微服务已存在");
                 return;
@@ -902,7 +902,7 @@ public class PaneServerMngController implements Initializable {
 
             
             try {
-                serverInfoDao.insert(po);
+                serverInfoRpcService.insert(po);
                 ViewUtils.alertForSucess("添加成功");
                 // 刷新页面
                 List<ServiceInfoEntity> newServiceList = sshDomainService.getServiceList(globalProps.getGroupName());

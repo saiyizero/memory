@@ -144,10 +144,21 @@ public class HttpDaoSupport<T> {
 
     private RpcDaoResponse doInvoke(String methodName, Object... args) {
         RpcDaoRequest request = new RpcDaoRequest();
-        request.setDaoType(AopUtils.getTargetClass(this).getName());
+        request.setDaoType(resolveServiceDaoType());
         request.setMethodName(methodName);
         request.setMethodArgs(objectMapper.valueToTree(args == null ? Collections.emptyList() : Arrays.asList(args)));
         return memoryHttpClient.postDao("/api/dao/invoke", request);
+    }
+
+    /**
+     * 客户端 RpcService 对应服务端同名 Dao。
+     */
+    private String resolveServiceDaoType() {
+        String simpleName = AopUtils.getTargetClass(this).getSimpleName();
+        if (simpleName.endsWith("RpcService")) {
+            simpleName = simpleName.substring(0, simpleName.length() - "RpcService".length()) + "Dao";
+        }
+        return "com.murong.ecp.tools.fx.infrastructure.repository.dao." + simpleName;
     }
 
     private RpcDaoRequest entityRequest(T entity) {

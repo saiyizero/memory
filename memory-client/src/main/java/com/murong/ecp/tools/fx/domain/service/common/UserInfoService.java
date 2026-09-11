@@ -1,6 +1,6 @@
 package com.murong.ecp.tools.fx.domain.service.common;
 
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -13,41 +13,41 @@ import java.util.List;
 public class UserInfoService {
     
     @Autowired
-    private UserInfoDao userInfoDao;
+    private UserInfoRpcService userInfoRpcService;
     
     /**
      * 查询所有用户
      */
     public List<UserInfoPO> queryAllUsers() {
-        return userInfoDao.queryAllUsers();
+        return userInfoRpcService.queryAllUsers();
     }
     
     /**
      * 根据用户ID查询用户
      */
     public UserInfoPO queryByUserId(String userId) {
-        return userInfoDao.queryByUserId(userId);
+        return userInfoRpcService.queryByUserId(userId);
     }
     
     /**
      * 根据用户名查询用户
      */
     public UserInfoPO queryByUsername(String username) {
-        return userInfoDao.queryByUsername(username);
+        return userInfoRpcService.queryByUsername(username);
     }
     
     /**
      * 根据角色查询用户
      */
     public List<UserInfoPO> queryByRole(String role) {
-        return userInfoDao.queryByRole(role);
+        return userInfoRpcService.queryByRole(role);
     }
     
     /**
      * 根据状态查询用户
      */
     public List<UserInfoPO> queryByStatus(String status) {
-        return userInfoDao.queryByStatus(status);
+        return userInfoRpcService.queryByStatus(status);
     }
     
     /**
@@ -67,7 +67,7 @@ public class UserInfoService {
             user.setStatus("ACTIVE");
         }
         
-        userInfoDao.save(user);
+        userInfoRpcService.save(user);
     }
     
     /**
@@ -78,42 +78,42 @@ public class UserInfoService {
 
         UserInfoPO whereUsr = new UserInfoPO();
         whereUsr.setUserId(user.getUserId());
-        userInfoDao.updateByOne(user,whereUsr);
+        userInfoRpcService.updateByOne(user,whereUsr);
     }
     
     /**
      * 删除用户
      */
     public void deleteUser(String userId) {
-        userInfoDao.deleteByUserId(userId);
+        userInfoRpcService.deleteByUserId(userId);
     }
     
     /**
      * 批量删除用户
      */
     public void batchDeleteUsers(List<String> userIds) {
-        userInfoDao.batchDeleteByUserIds(userIds);
+        userInfoRpcService.batchDeleteByUserIds(userIds);
     }
     
     /**
      * 检查用户名是否存在
      */
     public boolean isUsernameExists(String username) {
-        return userInfoDao.isUsernameExists(username);
+        return userInfoRpcService.isUsernameExists(username);
     }
     
     /**
      * 检查邮箱是否存在
      */
     public boolean isEmailExists(String email) {
-        return userInfoDao.isEmailExists(email);
+        return userInfoRpcService.isEmailExists(email);
     }
     
     /**
      * 验证用户登录
      */
     public UserInfoPO validateLogin(String username, String password) {
-        UserInfoPO user = userInfoDao.queryByUsername(username);
+        UserInfoPO user = userInfoRpcService.queryByUsername(username);
         if (user != null && StringUtils.equals(user.getPassword(), password) 
             && "ACTIVE".equals(user.getStatus())) {
             return user;
@@ -131,7 +131,7 @@ public class UserInfoService {
 
         UserInfoPO whereUsr = new UserInfoPO();
         whereUsr.setUserId(userId);
-        userInfoDao.updateByOne(updUser,whereUsr);
+        userInfoRpcService.updateByOne(updUser,whereUsr);
     }
     
     /**
@@ -144,7 +144,7 @@ public class UserInfoService {
 
         UserInfoPO whereUsr = new UserInfoPO();
         whereUsr.setUserId(userId);
-        userInfoDao.updateByOne(updUser,whereUsr);
+        userInfoRpcService.updateByOne(updUser,whereUsr);
     }
     
     /**
@@ -157,6 +157,6 @@ public class UserInfoService {
 
         UserInfoPO whereUsr = new UserInfoPO();
         whereUsr.setUserId(userId);
-        userInfoDao.updateByOne(updUser,whereUsr);
+        userInfoRpcService.updateByOne(updUser,whereUsr);
     }
 }

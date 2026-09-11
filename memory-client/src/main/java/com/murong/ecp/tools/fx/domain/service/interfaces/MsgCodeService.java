@@ -2,7 +2,7 @@ package com.murong.ecp.tools.fx.domain.service.interfaces;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.TranslationService;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizMsgInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizMsgInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -22,7 +22,7 @@ import java.util.Map;
 @Service
 public class MsgCodeService {
     @Autowired
-    private BizMsgInfoDao bizMsgInfoDao;
+    private BizMsgInfoRpcService bizMsgInfoRpcService;
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
@@ -36,7 +36,7 @@ public class MsgCodeService {
         bizMsgInfoPO.setMsgClass(msgClass);
         bizMsgInfoPO.setProjectName(globalPropes.getProjectName());
         bizMsgInfoPO.setGroupName(globalPropes.getGroupName());
-        List<BizMsgInfoPO> bizMsgInfoLst = bizMsgInfoDao.queryForList(bizMsgInfoPO);
+        List<BizMsgInfoPO> bizMsgInfoLst = bizMsgInfoRpcService.queryForList(bizMsgInfoPO);
 
         if (bizMsgInfoLst.isEmpty()) {
             throw new RuntimeException("未找到消息引用为 " + msgClass + " 的数据");
@@ -228,7 +228,7 @@ public class MsgCodeService {
             queryPO.setMsgClass(msgInfo.getMsgClass());
             queryPO.setMsgKey(msgInfo.getMsgKey());
             
-            List<BizMsgInfoPO> existingMsgs = bizMsgInfoDao.queryForList(queryPO);
+            List<BizMsgInfoPO> existingMsgs = bizMsgInfoRpcService.queryForList(queryPO);
             if (!existingMsgs.isEmpty()) {
                 throw new RuntimeException("消息键已存在: " + msgInfo.getMsgClass() + "." + msgInfo.getMsgKey());
             }
@@ -241,13 +241,13 @@ public class MsgCodeService {
             queryPO.setModuleName(msgInfo.getModuleName());
             queryPO.setMsgCd(msgInfo.getMsgCd());
             
-            existingMsgs = bizMsgInfoDao.queryForList(queryPO);
+            existingMsgs = bizMsgInfoRpcService.queryForList(queryPO);
             if (!existingMsgs.isEmpty()) {
                 throw new RuntimeException("消息代码已存在: " + msgInfo.getMsgCd());
             }
             
             // 执行新增
-            bizMsgInfoDao.insert(msgInfo);
+            bizMsgInfoRpcService.insert(msgInfo);
             return true;
             
         } catch (Exception e) {
@@ -286,13 +286,13 @@ public class MsgCodeService {
             queryPO.setMsgKey(msgInfo.getMsgKey());
             queryPO.setMsgCd(msgInfo.getMsgCd());
             
-            BizMsgInfoPO existingMsg = bizMsgInfoDao.queryOne(queryPO);
+            BizMsgInfoPO existingMsg = bizMsgInfoRpcService.queryOne(queryPO);
             if (existingMsg == null) {
                 throw new RuntimeException("要修改的消息不存在");
             }
             
             // 执行修改
-            bizMsgInfoDao.updateByOne(msgInfo, queryPO);
+            bizMsgInfoRpcService.updateByOne(msgInfo, queryPO);
             
             return true;
             
@@ -332,13 +332,13 @@ public class MsgCodeService {
             queryPO.setMsgKey(msgInfo.getMsgKey());
             queryPO.setMsgCd(msgInfo.getMsgCd());
             
-            BizMsgInfoPO existingMsg = bizMsgInfoDao.queryOne(queryPO);
+            BizMsgInfoPO existingMsg = bizMsgInfoRpcService.queryOne(queryPO);
             if (existingMsg == null) {
                 throw new RuntimeException("要删除的消息不存在");
             }
             
             // 执行删除
-            bizMsgInfoDao.delete(queryPO);
+            bizMsgInfoRpcService.delete(queryPO);
             
             return true;
             
@@ -361,7 +361,7 @@ public class MsgCodeService {
             String msgPrefix = appName.toUpperCase() + "P";
 
             // 使用高效的查询方法获取已存在的序列号
-            List<String> existingSeqNos = bizMsgInfoDao.queryExistingSeqNos(
+            List<String> existingSeqNos = bizMsgInfoRpcService.queryExistingSeqNos(
                     globalPropes.getGroupName(),
                     globalPropes.getProjectName(),
                     msgPrefix

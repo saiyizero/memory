@@ -8,9 +8,9 @@ import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.cache.BizDictCache;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
@@ -43,11 +43,11 @@ public class JavaCodeService {
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
     @Autowired
-    private CommonClassDao commonClassDao;
+    private CommonClassRpcService commonClassRpcService;
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
     @Autowired
     BizDictCache bizDictCache;
 
@@ -233,7 +233,7 @@ public class JavaCodeService {
                             reqParentClassPO.setGroupName(globalPropes.getGroupName());
                             reqParentClassPO.setProjectName(globalPropes.getProjectName());
                             reqParentClassPO.setAppName(globalPropes.getAppName());
-                            CommonClassPO exist = commonClassDao.queryOne(reqParentClassPO);
+                            CommonClassPO exist = commonClassRpcService.queryOne(reqParentClassPO);
                             // 注释（中文/英文）
                             String commentCn = "";
                             String commentEn = "";
@@ -268,7 +268,7 @@ public class JavaCodeService {
                                     po.setCommentEn(rxField.getCommentEn());
                                     po.setLength(rxField.getLength());
                                     if(!bizDictCache.existsInPublicBizDict(po)){
-                                        BizDictPO rspPO = bizDictDao.save(po);
+                                        BizDictPO rspPO = bizDictRpcService.save(po);
                                         rxField.setNameCamel(rspPO.getNameCamel());
                                         rxField.setNameSnake(rspPO.getNameSnake());
                                         rxField.setType(rspPO.getType());
@@ -299,9 +299,9 @@ public class JavaCodeService {
 
                             if (exist == null) {
                                 reqParentClassPO.setCompletedFlg(DataStatusEnum.PENDING.getCode());
-                                commonClassDao.save(reqParentClassPO);
+                                commonClassRpcService.save(reqParentClassPO);
                             } else if(!StringUtils.equals(exist.getCompletedFlg(), DataStatusEnum.REVIEW.getCode())) {
-                                commonClassDao.updateByOne(reqParentClassPO, exist);
+                                commonClassRpcService.updateByOne(reqParentClassPO, exist);
                             }
                         } catch (Throwable e) {
                             if(!StringUtils.equals(e.getMessage(),"com/yuangou/ecp/biz/transengine/sqlsession/YGPageEntity"))
@@ -317,7 +317,7 @@ public class JavaCodeService {
                             rspParentClassPO.setClassName(rspClass.getSimpleName());
                             rspParentClassPO.setClassType("PCLS");
                             rspParentClassPO.setClassPath(rspClass.getName());
-                            CommonClassPO exist = commonClassDao.queryOne(rspParentClassPO);
+                            CommonClassPO exist = commonClassRpcService.queryOne(rspParentClassPO);
                             // 注释（中文/英文）
                             String commentCn = "";
                             String commentEn = "";
@@ -352,7 +352,7 @@ public class JavaCodeService {
                                     po.setCommentEn(rxField.getCommentEn());
                                     po.setLength(rxField.getLength());
                                     if(!bizDictCache.existsInPublicBizDict(po)){
-                                        BizDictPO rspPO = bizDictDao.save(po);
+                                        BizDictPO rspPO = bizDictRpcService.save(po);
                                         rxField.setNameCamel(rspPO.getNameCamel());
                                         rxField.setNameSnake(rspPO.getNameSnake());
                                         rxField.setType(rspPO.getType());
@@ -382,9 +382,9 @@ public class JavaCodeService {
                             // 先查是否存在，存在则更新，不存在则插入
                             if (exist == null) {
                                 rspParentClassPO.setCompletedFlg(DataStatusEnum.PENDING.getCode());
-                                commonClassDao.save(rspParentClassPO);
+                                commonClassRpcService.save(rspParentClassPO);
                             } else if(!StringUtils.equals(exist.getCompletedFlg(), DataStatusEnum.REVIEW.getCode())) {
-                                commonClassDao.updateByOne(rspParentClassPO, exist);
+                                commonClassRpcService.updateByOne(rspParentClassPO, exist);
                             }
                         } catch (Throwable e) {
                             e.printStackTrace();
@@ -605,7 +605,7 @@ public class JavaCodeService {
                                     po.setLength(rxField.getLength());
                                 }
                                 if(!bizDictCache.existsInPublicBizDict(po)){
-                                    BizDictPO rspPO = bizDictDao.save(po);
+                                    BizDictPO rspPO = bizDictRpcService.save(po);
                                     rxField.setNameCamel(rspPO.getNameCamel());
                                     rxField.setNameSnake(rspPO.getNameSnake());
                                     rxField.setType(rspPO.getType());
@@ -1051,14 +1051,14 @@ public class JavaCodeService {
                                             query.setEnumNme(enumsClass.getSimpleName());
                                             query.setEnumRef(enumsClass.getPackage().getName());
                                             query.setEnumVal(enumVal);
-                                            EnumDictPO enumDictPO = enumDictDao.queryInfcDataHis(query);
+                                            EnumDictPO enumDictPO = enumDictRpcService.queryInfcDataHis(query);
                                             if(enumDictPO!=null){
                                                 po.setEnumCd(enumDictPO.getEnumCd());
                                                 po.setDescCn(enumDictPO.getDescCn());
                                                 po.setDescEn(enumDictPO.getDescEn());
                                                 po.setDbName(enumDictPO.getDbName());
                                             }
-                                            enumDictDao.upsert(po);
+                                            enumDictRpcService.upsert(po);
                                         }
                                     }
                                 }

@@ -1,6 +1,6 @@
 package com.murong.ecp.tools.fx.infrastructure.view;
 
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import javafx.application.Platform;
@@ -21,16 +21,16 @@ public class BizDictEditingCell<S> extends TableCell<S, String> {
     
     private TextField textField;
     private final StringConverter<String> converter;
-    private final BizDictDao bizDictDao;
+    private final BizDictRpcService bizDictRpcService;
     private final OnBizDictSelectedListener listener;
     
     public interface OnBizDictSelectedListener {
         void onBizDictSelected(BizDictPO bizDict);
     }
     
-    public BizDictEditingCell(StringConverter<String> converter, BizDictDao bizDictDao, OnBizDictSelectedListener listener) {
+    public BizDictEditingCell(StringConverter<String> converter, BizDictRpcService bizDictRpcService, OnBizDictSelectedListener listener) {
         this.converter = converter;
-        this.bizDictDao = bizDictDao;
+        this.bizDictRpcService = bizDictRpcService;
         this.listener = listener;
     }
     
@@ -94,7 +94,7 @@ public class BizDictEditingCell<S> extends TableCell<S, String> {
         String searchText = textField.getText();
         
         // 调用BizDictDao搜索业务字段，不通过SQL筛选，直接查询所有数据
-        List<BizDictPO> bizDictList = bizDictDao.searchByName(null);
+        List<BizDictPO> bizDictList = bizDictRpcService.searchByName(null);
         
         if (bizDictList.isEmpty()) {
             // 如果没有找到匹配的业务字段，显示提示

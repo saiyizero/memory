@@ -3,7 +3,7 @@ package com.murong.ecp.tools.fx.controller;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.TranslationService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.MsgCodeService;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizMsgInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizMsgInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.DeleteDialogUtil;
@@ -35,7 +35,7 @@ import java.util.function.Function;
 @Component
 public class PaneInfoCodeController {
     @Autowired
-    private BizMsgInfoDao bizMsgInfoDao;
+    private BizMsgInfoRpcService bizMsgInfoRpcService;
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
@@ -90,7 +90,7 @@ public class PaneInfoCodeController {
         BizMsgInfoPO bizMsgInfoPO = new BizMsgInfoPO();
         bizMsgInfoPO.setGroupName(globalPropes.getGroupName());
         bizMsgInfoPO.setAppName(globalPropes.getAppName());
-        List<BizMsgInfoPO> list = bizMsgInfoDao.queryForList(bizMsgInfoPO);
+        List<BizMsgInfoPO> list = bizMsgInfoRpcService.queryForList(bizMsgInfoPO);
         dataList.setAll(list);
         tableView.setItems(dataList);
         updateTotalCount(list.size());
@@ -122,12 +122,12 @@ public class PaneInfoCodeController {
         List<BizMsgInfoPO> list = null;
         if (searchField != null && StringUtils.isNotBlank(searchField.getText())) {
             String searchText = searchField.getText().trim();
-            list = bizMsgInfoDao.queryForSearch(searchText);
+            list = bizMsgInfoRpcService.queryForSearch(searchText);
         }else {
             BizMsgInfoPO queryPO = new BizMsgInfoPO();
             queryPO.setGroupName(globalPropes.getGroupName());
             queryPO.setProjectName(globalPropes.getProjectName());
-            list = bizMsgInfoDao.queryForList(queryPO);
+            list = bizMsgInfoRpcService.queryForList(queryPO);
         }
 
         dataList.setAll(list);
@@ -159,7 +159,7 @@ public class PaneInfoCodeController {
         if (StringUtils.isNotBlank(msgRef)) {
             BizMsgInfoPO queryPO = new BizMsgInfoPO();
             queryPO.setMsgRef(msgRef.trim());
-            return bizMsgInfoDao.queryForList(queryPO);
+            return bizMsgInfoRpcService.queryForList(queryPO);
         }
         return new ArrayList<>();
     }
@@ -350,7 +350,7 @@ public class PaneInfoCodeController {
             queryPO.setProjectName(globalPropes.getProjectName());
             
             // 查询所有消息分类
-            List<BizMsgInfoPO> allMsgs = bizMsgInfoDao.queryForList(queryPO);
+            List<BizMsgInfoPO> allMsgs = bizMsgInfoRpcService.queryForList(queryPO);
             
             // 提取并去重消息分类
             List<String> msgClasses = allMsgs.stream()
@@ -932,7 +932,7 @@ public class PaneInfoCodeController {
                 BizMsgInfoPO queryPO = new BizMsgInfoPO();
                 queryPO.setGroupName(globalPropes.getGroupName());
                 queryPO.setProjectName(globalPropes.getProjectName());
-                cachedSuggestions = bizMsgInfoDao.queryForList(queryPO);
+                cachedSuggestions = bizMsgInfoRpcService.queryForList(queryPO);
                 lastCacheTime = currentTime;
                 System.out.println("自动补全建议数据已缓存，共 " + cachedSuggestions.size() + " 条记录");
             }

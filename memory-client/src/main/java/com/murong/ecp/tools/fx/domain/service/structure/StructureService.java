@@ -1,7 +1,7 @@
 package com.murong.ecp.tools.fx.domain.service.structure;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectFolderDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectFolderPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
 import org.apache.commons.lang3.StringUtils;
@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 @Service
 public class StructureService {
     @Autowired
-    ProjectFolderDao projectFolderDao;
+    ProjectFolderRpcService projectFolderRpcService;
     @Autowired
     GlobalProperties globalPropes;
 
@@ -37,9 +37,9 @@ public class StructureService {
             ProjectFolderPO wherePo = new ProjectFolderPO();
             wherePo.setGroupName(projectSetting.getGroupName());
             wherePo.setProjectName(projectSetting.getProjectName());
-            projectFolderDao.delete(wherePo);
+            projectFolderRpcService.delete(wherePo);
             for (ProjectFolderPO projectFolder : projectFolders) {
-                projectFolderDao.save(projectFolder);
+                projectFolderRpcService.save(projectFolder);
             }
         }
         return projectFolders;

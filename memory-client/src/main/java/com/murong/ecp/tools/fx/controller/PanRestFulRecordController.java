@@ -1,7 +1,7 @@
 package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.DebugLogDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DebugLogRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DebugLogGroupPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DebugLogPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.query.DebugLogQuery;
@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
 @Component
 public class PanRestFulRecordController implements Initializable {
     @Autowired
-    private DebugLogDao debugLogDao;
+    private DebugLogRpcService debugLogRpcService;
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
@@ -243,7 +243,7 @@ public class PanRestFulRecordController implements Initializable {
 
     private void loadIpOptionsForGroup(DebugLogGroupPO group) {
         try {
-            List<String> ipList = debugLogDao.queryIpListByGroup(group);
+            List<String> ipList = debugLogRpcService.queryIpListByGroup(group);
             ObservableList<String> ipOptions = FXCollections.observableArrayList();
             ipOptions.add("全部"); // 添加"全部"选项
             if (ipList != null) {
@@ -267,7 +267,7 @@ public class PanRestFulRecordController implements Initializable {
                 query.setEndDt(endDatePicker.getValue().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             }
             query.setProjectName(globalPropes.getProjectName());
-            List<DebugLogGroupPO> groups = debugLogDao.qryGroupForList(query);
+            List<DebugLogGroupPO> groups = debugLogRpcService.qryGroupForList(query);
             summaryList.clear();
             if (groups != null) {
                 summaryList.addAll(groups);
@@ -309,7 +309,7 @@ public class PanRestFulRecordController implements Initializable {
                 // 关键字过滤在查询后进行处理
             }
 
-            List<DebugLogPO> logs = debugLogDao.queryForList(query);
+            List<DebugLogPO> logs = debugLogRpcService.queryForList(query);
             System.out.println("查询到原始数据条数: " + (logs != null ? logs.size() : 0));
             detailList.clear();
             if (logs != null) {

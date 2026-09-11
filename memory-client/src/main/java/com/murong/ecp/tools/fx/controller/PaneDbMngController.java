@@ -2,8 +2,8 @@ package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.entity.DatasourceConfig;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.DbConnectionDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DbConnectionPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
@@ -52,9 +52,9 @@ public class PaneDbMngController {
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
-    private DbConnectionDao dbConnectionDao;
+    private DbConnectionRpcService dbConnectionRpcService;
     @Autowired
-    private UserProjSettingDao UserProjSettingDao;
+    private UserProjSettingRpcService userProjSettingRpcService;
 
     @FXML
     public void initialize() {
@@ -101,7 +101,7 @@ public class PaneDbMngController {
                         updateDbPO.setSchemaNm(cfg.getSchema());
                         updateDbPO.setEnvName(cfg.getEnvName());
                         updateDbPO.setMainFlg(newVal ? "1" : "0");
-                        dbConnectionDao.updateMainFlg(updateDbPO);
+                        dbConnectionRpcService.updateMainFlg(updateDbPO);
                         
                         // 刷新查询页面，根据当前环境过滤
                         loadDbConnectionsByCurrentEnv();
@@ -146,7 +146,7 @@ public class PaneDbMngController {
                 po.setJdbcUrl(cfg.getUrl());
                 po.setUsername(cfg.getUsername());
                 po.setPassword(cfg.getPassword());
-                dbConnectionDao.delete(po);
+                dbConnectionRpcService.delete(po);
             }
         });
         importBtn.setOnAction(e -> handleImportConfig());
@@ -178,7 +178,7 @@ public class PaneDbMngController {
                         where.setPassword(cfg.getPassword());
                         DbConnectionPO update = new DbConnectionPO();
                         update.setEnvName(selectedEnv);
-                        dbConnectionDao.updateByOne(update, where);
+                        dbConnectionRpcService.updateByOne(update, where);
                     }
                 }
                 // 可选：刷新表格
@@ -237,7 +237,7 @@ public class PaneDbMngController {
         datasourceList.clear();
         DbConnectionPO dbConnectionPO = new DbConnectionPO();
         dbConnectionPO.setGroupName(globalPropes.getGroupName());
-        java.util.List<DbConnectionPO> dbList = dbConnectionDao.queryForList(dbConnectionPO);
+        java.util.List<DbConnectionPO> dbList = dbConnectionRpcService.queryForList(dbConnectionPO);
         for (DbConnectionPO po : dbList) {
             DatasourceConfig cfg = new DatasourceConfig();
             cfg.setDriverName(po.getDriver());
@@ -265,16 +265,16 @@ public class PaneDbMngController {
             // 加载所有数据
             DbConnectionPO dbConnectionPO = new DbConnectionPO();
             dbConnectionPO.setGroupName(globalPropes.getGroupName());
-            dbList = dbConnectionDao.queryForList(dbConnectionPO);
+            dbList = dbConnectionRpcService.queryForList(dbConnectionPO);
         } else if ("other".equals(selectedEnv)) {
             // 查询envName为null或空的数据
-            dbList = dbConnectionDao.queryForListWithNullEnv();
+            dbList = dbConnectionRpcService.queryForListWithNullEnv();
         } else {
             // 根据选择的环境过滤
             DbConnectionPO query = new DbConnectionPO();
             query.setGroupName(globalPropes.getGroupName());
             query.setEnvName(selectedEnv);
-            dbList = dbConnectionDao.queryForList(query);
+            dbList = dbConnectionRpcService.queryForList(query);
         }
         
         for (DbConnectionPO po : dbList) {
@@ -311,7 +311,7 @@ public class PaneDbMngController {
         ComboBox<String> appNameCombo = new ComboBox<>();
         final List<UserProjSettingPO> projectParamList = new ArrayList<>();
         try {
-            projectParamList.addAll(UserProjSettingDao.queryForList(new UserProjSettingPO()));
+            projectParamList.addAll(userProjSettingRpcService.queryForList(new UserProjSettingPO()));
         } catch (Exception ex) {
             projectParamList.clear();
         }
@@ -447,7 +447,7 @@ public class PaneDbMngController {
                 po.setJdbcUrl(result.getUrl());
                 po.setSchemaNm(result.getSchema());
                 po.setMainFlg(result.isMainFlag() ? "1" : "0");
-                dbConnectionDao.save(po);
+                dbConnectionRpcService.save(po);
             } else {
                 config.setDriverName(result.getDriverName());
                 config.setUsername(result.getUsername());
@@ -470,7 +470,7 @@ public class PaneDbMngController {
                 update.setJdbcUrl(result.getUrl());
                 update.setSchemaNm(result.getSchema());
 
-                dbConnectionDao.updateByOne(update, where);
+                dbConnectionRpcService.updateByOne(update, where);
             }
         });
     }
@@ -575,7 +575,7 @@ public class PaneDbMngController {
             }
 
             Set<String> seen = new HashSet<>();
-            List<UserProjSettingPO> matchList = UserProjSettingDao.queryForList(new UserProjSettingPO());
+            List<UserProjSettingPO> matchList = userProjSettingRpcService.queryForList(new UserProjSettingPO());
             for (DbConnectionPO dbConnectionPO : dbConnectionLst) {
                 for (UserProjSettingPO param : matchList) {
                     if (param.getAppName() != null && param.getAppName().equals(dbConnectionPO.getAppName())) {
@@ -587,7 +587,7 @@ public class PaneDbMngController {
                         if (seen.contains(uniqueKey)) continue;
                         seen.add(uniqueKey);
 
-                        dbConnectionDao.save(dbConnectionPO);
+                        dbConnectionRpcService.save(dbConnectionPO);
                         break;
                     }
                 }

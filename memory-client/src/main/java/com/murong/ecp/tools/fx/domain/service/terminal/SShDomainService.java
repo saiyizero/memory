@@ -2,7 +2,7 @@ package com.murong.ecp.tools.fx.domain.service.terminal;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.entity.ServiceInfoEntity;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ServerInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ServerInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ServerInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import net.schmizz.sshj.SSHClient;
@@ -19,7 +19,7 @@ import java.util.Map;
 @Service
 public class SShDomainService {
     @Autowired
-    ServerInfoDao serverInfoDao;
+    ServerInfoRpcService serverInfoRpcService;
     @Autowired
     GlobalProperties globalPropes;
 
@@ -27,7 +27,7 @@ public class SShDomainService {
         ServerInfoPO query = new ServerInfoPO();
         query.setScanFlg(1);
         query.setGroupName(groupName);
-        List<ServerInfoPO> poList = serverInfoDao.queryForList(query);
+        List<ServerInfoPO> poList = serverInfoRpcService.queryForList(query);
         // 按 groupName+ip 分组
         Map<String, ServiceInfoEntity> groupMap = new HashMap<>();
         for (ServerInfoPO po : poList) {
@@ -224,7 +224,7 @@ public class SShDomainService {
                                 whereInfo.setProjectName(microName);
                                 whereInfo.setGroupName(groupName);
                                 whereInfo.setAppName(appNme);
-                                ServerInfoPO serverInfoRsp = serverInfoDao.queryOne(whereInfo);
+                                ServerInfoPO serverInfoRsp = serverInfoRpcService.queryOne(whereInfo);
 
                                 ServerInfoPO serverInfo = new ServerInfoPO();
                                 String logPath = scanPath + (scanPath.endsWith("/") ? "" : "/") + baseDir + java.io.File.separator + microName + java.io.File.separator + "trc";
@@ -255,11 +255,11 @@ public class SShDomainService {
                                 }
 
                                 if (serverInfoRsp != null) {
-                                    serverInfoDao.updateByOne(serverInfo, whereInfo);
+                                    serverInfoRpcService.updateByOne(serverInfo, whereInfo);
                                 } else {
                                     serverInfo.setIp(ip);
                                     serverInfo.setProjectName(microName);
-                                    serverInfoDao.save(serverInfo);
+                                    serverInfoRpcService.save(serverInfo);
                                 }
                             }
                         }
@@ -319,7 +319,7 @@ public class SShDomainService {
         ServerInfoPO po = new ServerInfoPO();
         po.setIp(ip);
         po.setProjectName(globalPropes.getProjectName());
-        ServerInfoPO serverInfo = serverInfoDao.queryOne(po);
+        ServerInfoPO serverInfo = serverInfoRpcService.queryOne(po);
         String remotePath = serverInfo.getAppPath() + "/"+ MrDateUtils.getCurrentDay() + "/";
         String username = serverInfo.getUsername();
         String password = serverInfo.getPassword();

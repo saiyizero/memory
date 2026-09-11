@@ -5,7 +5,7 @@ import com.murong.ecp.tools.fx.domain.view.ProgressDialog;
 import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.JavaTypeEnum;
 import com.murong.ecp.tools.fx.enums.DatabaseTypeEnum;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BaseDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BaseDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.FilteredEditingCell;
@@ -45,7 +45,7 @@ import javafx.stage.FileChooser;
 @Component
 public class PaneBaseDictController {
     @Autowired
-    private BaseDictDao baseDictDao;
+    private BaseDictRpcService baseDictRpcService;
     @Autowired
     private GlobalProperties globalProperties;
 
@@ -456,7 +456,7 @@ public class PaneBaseDictController {
             
             try {
                 // 保存到数据库
-                baseDictDao.save(newBaseDict);
+                baseDictRpcService.save(newBaseDict);
                 
                 // 刷新列表
                 doQuery();
@@ -491,14 +491,14 @@ public class PaneBaseDictController {
             // 检查是否已存在
             BaseDictPO baseDictPO = new BaseDictPO();
             baseDictPO.setNameSnake(baseDict.getNameSnake());
-            BaseDictPO existing = baseDictDao.queryOne(baseDictPO);
+            BaseDictPO existing = baseDictRpcService.queryOne(baseDictPO);
             if (existing != null) {
                 // 更新现有记录
-                baseDictDao.updateByOne(baseDict, createWhereCondition(baseDict));
+                baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
                 ViewUtils.alertForSucess("记录更新成功！");
             } else {
                 // 插入新记录
-                baseDictDao.save(baseDict);
+                baseDictRpcService.save(baseDict);
                 ViewUtils.alertForSucess("记录保存成功！");
             }
             
@@ -521,7 +521,7 @@ public class PaneBaseDictController {
             if (response == ButtonType.OK) {
                 try {
                     // 从数据库删除
-                    baseDictDao.delete(baseDict);
+                    baseDictRpcService.delete(baseDict);
                     
                     // 从列表中移除
                     dictList.remove(baseDict);
@@ -735,7 +735,7 @@ public class PaneBaseDictController {
         String searchText = searchField != null ? searchField.getText() : "";
         
         // 使用BaseDictDao的searchByName方法进行搜索
-        List<BaseDictPO> list = baseDictDao.searchByName(searchText);
+        List<BaseDictPO> list = baseDictRpcService.searchByName(searchText);
         
         dictList.setAll(list);
         baseDictTableView.refresh();
@@ -880,13 +880,13 @@ public class PaneBaseDictController {
                 for (BaseDictPO baseDict : importedData) {
                     try {
                         // 检查是否已存在
-                        BaseDictPO existing = baseDictDao.queryOne(baseDict);
+                        BaseDictPO existing = baseDictRpcService.queryOne(baseDict);
                         if (existing != null) {
                             // 更新现有记录
-                            baseDictDao.updateByOne(baseDict, createWhereCondition(baseDict));
+                            baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
                         } else {
                             // 插入新记录
-                            baseDictDao.save(baseDict);
+                            baseDictRpcService.save(baseDict);
                         }
                     } catch (Exception e) {
                         System.err.println("保存数据时出错: " + e.getMessage());
@@ -1121,7 +1121,7 @@ public class PaneBaseDictController {
             
             // 如果没有数据，尝试从数据库查询
             if (dataToExport.isEmpty()) {
-                dataToExport = baseDictDao.searchByName("");
+                dataToExport = baseDictRpcService.searchByName("");
             }
             
             // 填充数据行
@@ -1217,13 +1217,13 @@ public class PaneBaseDictController {
             for (BaseDictPO baseDict : dictList) {
                 try {
                     // 检查是否已存在
-                    BaseDictPO existing = baseDictDao.queryOne(baseDict);
+                    BaseDictPO existing = baseDictRpcService.queryOne(baseDict);
                     if (existing != null) {
                         // 更新现有记录
-                        baseDictDao.updateByOne(baseDict, createWhereCondition(baseDict));
+                        baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
                     } else {
                         // 插入新记录
-                        baseDictDao.save(baseDict);
+                        baseDictRpcService.save(baseDict);
                     }
                     successCount++;
                 } catch (Exception e) {

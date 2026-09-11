@@ -2,8 +2,8 @@ package com.murong.ecp.tools.fx.domain.service.interfaces;
 
 import com.murong.ecp.m5.dict.IBasicEnum;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizMsgInfoDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizMsgInfoRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.BusinessUtils;
@@ -24,10 +24,10 @@ import java.util.stream.Stream;
 public class EnumsCdAnalyService {
 
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
 
     @Autowired
-    private BizMsgInfoDao bizMsgInfoDao;
+    private BizMsgInfoRpcService bizMsgInfoRpcService;
 
     @Autowired
     private GlobalProperties globalProperties;
@@ -343,7 +343,7 @@ public class EnumsCdAnalyService {
             enumDictPO.setDbName(BusinessUtils.enumNameToDbName(enumClass.getSimpleName()));
             
             // 保存到数据库
-            enumDictDao.upsert(enumDictPO);
+            enumDictRpcService.upsert(enumDictPO);
 
         } catch (Exception e) {
             System.err.println("保存枚举到数据库时发生错误: " + e.getMessage());
@@ -420,7 +420,7 @@ public class EnumsCdAnalyService {
             bizMsgInfoPO.setUpdateTime(java.time.LocalDateTime.now().toString());
             
             // 保存到数据库（使用upsert避免重复插入）
-            bizMsgInfoDao.upsert(bizMsgInfoPO);
+            bizMsgInfoRpcService.upsert(bizMsgInfoPO);
 
         } catch (Exception e) {
             e.printStackTrace();

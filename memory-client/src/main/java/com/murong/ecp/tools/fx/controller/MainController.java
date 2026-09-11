@@ -6,8 +6,8 @@ import com.murong.ecp.tools.fx.domain.service.common.UserPreferenceService;
 import com.murong.ecp.tools.fx.domain.service.common.UserProjGroupService;
 import com.murong.ecp.tools.fx.enums.MenuEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.LocalSettingDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjGroupDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjGroupRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjGroupPO;
 import com.murong.ecp.tools.fx.domain.service.common.ProjectGroupService;
@@ -65,9 +65,9 @@ public class MainController {
     @Autowired
     private ApplicationContext applicationContext;
     @Autowired
-    private UserProjGroupDao userProjGroupDao;
+    private UserProjGroupRpcService userProjGroupRpcService;
     @Autowired
-    private UserProjSettingDao userProjSettingDao;
+    private UserProjSettingRpcService userProjSettingRpcService;
     @Autowired
     private UserProjGroupService userProjGroupService;
     @Autowired
@@ -170,7 +170,7 @@ public class MainController {
         // LOGO图片
         logoImage.setImage(new Image(getClass().getResourceAsStream("/image/logo.png")));
         // 查询所有项目群
-        List<UserProjGroupPO> groupLst = userProjGroupDao.queryForList(new UserProjGroupPO());
+        List<UserProjGroupPO> groupLst = userProjGroupRpcService.queryForList(new UserProjGroupPO());
         envComboBox.getItems().clear();
         envComboBox.getItems().addAll(groupLst.stream().map(UserProjGroupPO::getGroupName).collect(Collectors.toList()));
         // 默认选中curFlag=Y的项目群，否则选第一个
@@ -187,7 +187,7 @@ public class MainController {
         UserProjSettingPO projectSettingPO = new UserProjSettingPO();
         projectSettingPO.setGroupName(envComboBox.getValue());
         projectSettingPO.setShowFlag("Y");
-        List<UserProjSettingPO> projectLst = userProjSettingDao.queryForList(projectSettingPO);
+        List<UserProjSettingPO> projectLst = userProjSettingRpcService.queryForList(projectSettingPO);
         dsComboBox.getItems().clear();
         dsComboBox.getItems().addAll(projectLst.stream().map(UserProjSettingPO::getProjectName).collect(Collectors.toList()));
         // 默认选中curFlag=Y的项目，否则选第一个
@@ -208,7 +208,7 @@ public class MainController {
 
                 UserProjSettingPO envReqPO = new UserProjSettingPO();
                 envReqPO.setGroupName(newVal);
-                List<UserProjSettingPO> projectEnvLst = userProjSettingDao.queryForList(envReqPO);
+                List<UserProjSettingPO> projectEnvLst = userProjSettingRpcService.queryForList(envReqPO);
 
                 dsComboBox.getItems().clear();
                 if (projectEnvLst != null) {
@@ -236,7 +236,7 @@ public class MainController {
                 UserProjSettingPO query = new UserProjSettingPO();
                 query.setGroupName(group);
                 query.setProjectName(newVal);
-                UserProjSettingPO po = userProjSettingDao.queryOne(query);
+                UserProjSettingPO po = userProjSettingRpcService.queryOne(query);
                 if (po != null) {
                     // 转换为ProjectSettingPO以兼容rebuildGlobalPropes方法
                     ProjectSettingPO convertedProjectSetting = new ProjectSettingPO();
@@ -901,7 +901,7 @@ public class MainController {
                 UserProjSettingPO projectSettingPO = new UserProjSettingPO();
                 projectSettingPO.setGroupName(currentGroup);
                 projectSettingPO.setShowFlag("Y");
-                List<UserProjSettingPO> projectLst = userProjSettingDao.queryForList(projectSettingPO);
+                List<UserProjSettingPO> projectLst = userProjSettingRpcService.queryForList(projectSettingPO);
                 
                 System.out.println("[DEBUG] 查询到 " + projectLst.size() + " 个显示的项目");
                 

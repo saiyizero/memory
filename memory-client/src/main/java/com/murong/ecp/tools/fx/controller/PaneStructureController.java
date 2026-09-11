@@ -7,8 +7,8 @@ import com.murong.ecp.tools.fx.domain.service.structure.StructureService;
 import com.murong.ecp.tools.fx.enums.DirTypeEnum;
 import com.murong.ecp.tools.fx.enums.FlgEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.TranslationResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectFolderDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectFolderPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
@@ -60,9 +60,9 @@ public class PaneStructureController implements Initializable {
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
-    private UserProjSettingDao projectSettingDao;
+    private UserProjSettingRpcService projectSettingRpcService;
     @Autowired
-    private ProjectFolderDao projectFolderDao;
+    private ProjectFolderRpcService projectFolderRpcService;
     @Autowired
     private StructureService structureService;
     @Autowired
@@ -279,14 +279,14 @@ public class PaneStructureController implements Initializable {
             
             if ("project".equals(node.getType())) {
                 // 项目根节点，显示所有模块的数据
-                folderData = projectFolderDao.searchByProjectName(currentProjectName);
+                folderData = projectFolderRpcService.searchByProjectName(currentProjectName);
             } else if ("module".equals(node.getType())) {
                 // 模块节点，显示该模块下所有目录的数据
-                folderData = projectFolderDao.searchByModuleName(currentProjectName, node.getName());
+                folderData = projectFolderRpcService.searchByModuleName(currentProjectName, node.getName());
             } else if ("directory".equals(node.getType())) {
                 // 目录节点，显示该目录下的数据
                 String dirBase = node.getPath();
-                folderData = projectFolderDao.searchByDirBase(currentProjectName, node.getModuleName(), dirBase);
+                folderData = projectFolderRpcService.searchByDirBase(currentProjectName, node.getModuleName(), dirBase);
             }
             
             pathTableData.addAll(folderData);
@@ -454,7 +454,7 @@ public class PaneStructureController implements Initializable {
         Optional<ProjectFolderPO> result = dialog.showAndWait();
         result.ifPresent(updatedFolder -> {
             try {
-                projectFolderDao.save(updatedFolder);
+                projectFolderRpcService.save(updatedFolder);
                 ViewUtils.alertForSucess("路径配置更新成功！");
                 // 刷新当前表格数据
                 TreeItem<ProjectStructureNode> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
@@ -481,7 +481,7 @@ public class PaneStructureController implements Initializable {
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                projectFolderDao.delete(folder);
+                projectFolderRpcService.delete(folder);
                 ViewUtils.alertForSucess("路径配置删除成功！");
                 // 刷新当前表格数据
                 TreeItem<ProjectStructureNode> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
@@ -562,7 +562,7 @@ public class PaneStructureController implements Initializable {
             return projectConfigs.get(projectName);
         }
         
-        List<ProjectFolderPO> configs = projectFolderDao.searchByProjectName(projectName);
+        List<ProjectFolderPO> configs = projectFolderRpcService.searchByProjectName(projectName);
         projectConfigs.put(projectName, configs);
         return configs;
     }
@@ -666,7 +666,7 @@ public class PaneStructureController implements Initializable {
             UserProjSettingPO query = new UserProjSettingPO();
             query.setProjectName(currentProjectName);
             query.setGroupName(globalPropes.getGroupName());
-            currentProject = projectSettingDao.queryOne(query);
+            currentProject = projectSettingRpcService.queryOne(query);
 
             if (currentProject!=null) {
                 updateUIWithProjectData(currentProject);
@@ -1001,7 +1001,7 @@ public class PaneStructureController implements Initializable {
                 updateEntity.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                 updateEntity.setUpdateBy("system");
                 
-                projectSettingDao.updateByOne(updateEntity, currentProject);
+                projectSettingRpcService.updateByOne(updateEntity, currentProject);
                 currentProject.setBasePath(basePath);
             }
         } catch (Exception e) {
@@ -1039,7 +1039,7 @@ public class PaneStructureController implements Initializable {
                     updateEntity.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                     updateEntity.setUpdateBy("system");
                     
-                    projectSettingDao.updateByOne(updateEntity, currentProject);
+                    projectSettingRpcService.updateByOne(updateEntity, currentProject);
                     currentProject.setBasePath(selectedPath);
                     
                     // 刷新界面上的扫描目录
@@ -1073,7 +1073,7 @@ public class PaneStructureController implements Initializable {
             currentProject.setUpdateBy("system");
             currentProject.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             
-            projectSettingDao.insert(currentProject);
+            projectSettingRpcService.insert(currentProject);
             
             // 刷新界面
             if (projectDescTextField != null) {

@@ -6,9 +6,9 @@ import com.murong.ecp.tools.fx.domain.view.ProgressDialog;
 import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.JavaTypeEnum;
 import com.murong.ecp.tools.fx.enums.DatabaseTypeEnum;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BaseDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BaseDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
@@ -56,11 +56,11 @@ import java.util.Optional;
 @Component
 public class PaneBizDictController {
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
     @Autowired
-    private EnumDictDao enumDictDao;
+    private EnumDictRpcService enumDictRpcService;
     @Autowired
-    private BaseDictDao baseDictDao;
+    private BaseDictRpcService baseDictRpcService;
     @Autowired
     private GlobalProperties globalProperties;
     @Autowired
@@ -681,7 +681,7 @@ public class PaneBizDictController {
             
             try {
                 // 保存到数据库
-                bizDictDao.save(newBizDict);
+                bizDictRpcService.save(newBizDict);
                 
                 // 刷新列表
                 doQuery();
@@ -1073,7 +1073,7 @@ public class PaneBizDictController {
                 }
                 
                 // 保存到数据库
-                bizDictDao.updateByOne(updatedBizDict, wherePO);
+                bizDictRpcService.updateByOne(updatedBizDict, wherePO);
                 
                 // 刷新列表
                 doQuery();
@@ -1239,7 +1239,7 @@ public class PaneBizDictController {
         String selectedAppName = appNameComboBox != null ? appNameComboBox.getValue() : "全部";
         
         // 如果选择了特定应用，需要过滤结果
-        List<BizDictPO> list = bizDictDao.searchByName(searchText,selectedAppName);
+        List<BizDictPO> list = bizDictRpcService.searchByName(searchText,selectedAppName);
         
         // 添加调试日志，检查数据
         System.out.println("查询结果数量: " + list.size());
@@ -1263,7 +1263,7 @@ public class PaneBizDictController {
             EnumDictPO query = new EnumDictPO();
             query.setEnumNme(bizDict.getEnumNme());
             query.setEnumRef(bizDict.getEnumRef());
-            List<EnumDictPO> enumList = enumDictDao.queryForList(query);
+            List<EnumDictPO> enumList = enumDictRpcService.queryForList(query);
             
             if (enumList.isEmpty()) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -1348,7 +1348,7 @@ public class PaneBizDictController {
                 
                 // 保存到数据库
                 try {
-                    bizDictDao.updateEnumRef(selectedItem);
+                    bizDictRpcService.updateEnumRef(selectedItem);
                     bizDictTableView.refresh();
                 } catch (Exception e) {
                     ViewUtils.alertForFail("保存枚举值时发生错误: " + e.getMessage());
@@ -1524,7 +1524,7 @@ public class PaneBizDictController {
                     bizDict.setEnumRef("");
                     
                     // 保存到数据库
-                    bizDictDao.updateByOne(bizDict, createWhereCondition(bizDict));
+                    bizDictRpcService.updateByOne(bizDict, createWhereCondition(bizDict));
                     
                     // 刷新表格
                     bizDictTableView.refresh();
@@ -1547,7 +1547,7 @@ public class PaneBizDictController {
     private void performBaseDictSearch(String searchText, TableView<BaseDictPO> tableView) {
         try {
             // 使用BaseDictDao进行搜索
-            List<BaseDictPO> baseDictList = baseDictDao.searchByName(searchText);
+            List<BaseDictPO> baseDictList = baseDictRpcService.searchByName(searchText);
             
             // 更新表格数据
             ObservableList<BaseDictPO> observableList = FXCollections.observableArrayList(baseDictList);
@@ -1708,13 +1708,13 @@ public class PaneBizDictController {
                 for (BizDictPO bizDict : importedData) {
                     try {
                         // 检查是否已存在
-                        BizDictPO existing = bizDictDao.queryOne(bizDict);
+                        BizDictPO existing = bizDictRpcService.queryOne(bizDict);
                         if (existing != null) {
                             // 更新现有记录
-                            bizDictDao.updateByOne(bizDict, createWhereCondition(bizDict));
+                            bizDictRpcService.updateByOne(bizDict, createWhereCondition(bizDict));
                         } else {
                             // 插入新记录
-                            bizDictDao.save(bizDict);
+                            bizDictRpcService.save(bizDict);
                         }
                     } catch (Exception e) {
                         System.err.println("保存数据时出错: " + e.getMessage());
@@ -1977,7 +1977,7 @@ public class PaneBizDictController {
             
             // 如果没有数据，尝试从数据库查询
             if (dataToExport.isEmpty()) {
-                dataToExport = bizDictDao.searchByName("", "全部");
+                dataToExport = bizDictRpcService.searchByName("", "全部");
             }
             
             // 填充数据行
@@ -2299,14 +2299,14 @@ public class PaneBizDictController {
             wherePO.setNameCamel(bizDict.getNameCamel());
             wherePO.setAppName(bizDict.getAppName());
             
-            BizDictPO existing = bizDictDao.queryOne(wherePO);
+            BizDictPO existing = bizDictRpcService.queryOne(wherePO);
             if (existing != null) {
                 // 更新现有记录
-                bizDictDao.updateByOne(bizDict, wherePO);
+                bizDictRpcService.updateByOne(bizDict, wherePO);
                 ViewUtils.alertForSucess("记录更新成功！");
             } else {
                 // 插入新记录
-                bizDictDao.save(bizDict);
+                bizDictRpcService.save(bizDict);
                 ViewUtils.alertForSucess("记录保存成功！");
             }
             
@@ -2330,13 +2330,13 @@ public class PaneBizDictController {
             for (BizDictPO bizDict : dictList) {
                 try {
                     // 检查是否已存在
-                    BizDictPO existing = bizDictDao.queryOne(bizDict);
+                    BizDictPO existing = bizDictRpcService.queryOne(bizDict);
                     if (existing != null) {
                         // 更新现有记录
-                        bizDictDao.updateByOne(bizDict, createWhereCondition(bizDict));
+                        bizDictRpcService.updateByOne(bizDict, createWhereCondition(bizDict));
                     } else {
                         // 插入新记录
-                        bizDictDao.save(bizDict);
+                        bizDictRpcService.save(bizDict);
                     }
                     successCount++;
                 } catch (Exception e) {

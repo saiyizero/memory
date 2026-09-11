@@ -1,9 +1,9 @@
 package com.murong.ecp.tools.fx.domain.service.common;
 
 import com.murong.ecp.tools.fx.enums.FlgEnum;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectGroupDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectSettingDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ServerInfoDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectGroupRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectSettingRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ServerInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectGroupPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
 import org.apache.commons.lang3.StringUtils;
@@ -16,25 +16,25 @@ import java.util.List;
 public class ProjectGroupService {
     
     @Autowired
-    private ProjectGroupDao projectGroupDao;
+    private ProjectGroupRpcService projectGroupRpcService;
     @Autowired
-    private ServerInfoDao serverInfoDao;
+    private ServerInfoRpcService serverInfoRpcService;
     
     @Autowired
-    private ProjectSettingDao projectSettingDao;
+    private ProjectSettingRpcService projectSettingRpcService;
     
     /**
      * 查询所有项目群
      */
     public List<ProjectGroupPO> queryAllProjectGroups() {
-        return projectGroupDao.queryAllGroups();
+        return projectGroupRpcService.queryAllGroups();
     }
     
     /**
      * 查询当前选中的项目群
      */
     public ProjectGroupPO queryCurrentProjectGroup() {
-        return projectGroupDao.queryCurGroup();
+        return projectGroupRpcService.queryCurGroup();
     }
     
     /**
@@ -43,28 +43,28 @@ public class ProjectGroupService {
     public List<ProjectSettingPO> queryProjectSettingsByGroupName(String groupName) {
         ProjectSettingPO queryPo = new ProjectSettingPO();
         queryPo.setGroupName(groupName);
-        return projectSettingDao.queryForList(queryPo);
+        return projectSettingRpcService.queryForList(queryPo);
     }
     
     /**
      * 保存项目设置
      */
     public void saveProjectSetting(ProjectSettingPO projectSetting) {
-        projectSettingDao.save(projectSetting);
+        projectSettingRpcService.save(projectSetting);
     }
     
     /**
      * 切换项目
      */
     public void switchProject(String groupName, String projectName) {
-        projectSettingDao.switchProject(groupName, projectName);
+        projectSettingRpcService.switchProject(groupName, projectName);
     }
     
     /**
      * 删除项目设置
      */
     public void deleteProjectSetting(String groupName, String projectName) {
-        projectSettingDao.deleteProjectSetting(groupName, projectName);
+        projectSettingRpcService.deleteProjectSetting(groupName, projectName);
     }
     
     /**
@@ -75,22 +75,22 @@ public class ProjectGroupService {
         if (!StringUtils.equals(showFlag, FlgEnum.YES.getValue())) {
             scanFlg="0";
         }
-        serverInfoDao.updateScanFlg(setting.getGroupName(), setting.getAppName(), scanFlg);
-        projectSettingDao.updateShowFlag(setting.getGroupName(), setting.getProjectName(), showFlag);
+        serverInfoRpcService.updateScanFlg(setting.getGroupName(), setting.getAppName(), scanFlg);
+        projectSettingRpcService.updateShowFlag(setting.getGroupName(), setting.getProjectName(), showFlag);
     }
     
     /**
      * 保存项目组
      */
     public void saveProjectGroup(ProjectGroupPO projectGroup) {
-        projectGroupDao.save(projectGroup);
+        projectGroupRpcService.save(projectGroup);
     }
     
     /**
      * 根据项目组名称查询项目组
      */
     public ProjectGroupPO queryProjectGroupByGroupName(String groupName) {
-        return projectGroupDao.queryByGroupName(groupName);
+        return projectGroupRpcService.queryByGroupName(groupName);
     }
     
     /**
@@ -101,17 +101,17 @@ public class ProjectGroupService {
             return; // 项目组名称为空时不处理
         }
         // 根据groupName查询是否存在
-        ProjectGroupPO existingGroup = projectGroupDao.queryByGroupName(projectGroup.getGroupName());
+        ProjectGroupPO existingGroup = projectGroupRpcService.queryByGroupName(projectGroup.getGroupName());
         
         if (existingGroup != null) {
             ProjectGroupPO updateGroupPO = new ProjectGroupPO();
             updateGroupPO.setGroupDesc(projectGroup.getGroupDesc());
             ProjectGroupPO whereGroupPO = new ProjectGroupPO();
             whereGroupPO.setGroupName(projectGroup.getGroupName());
-            projectGroupDao.updateByOne(updateGroupPO, whereGroupPO);
+            projectGroupRpcService.updateByOne(updateGroupPO, whereGroupPO);
         } else {
             // 不存在则新增
-            projectGroupDao.save(projectGroup);
+            projectGroupRpcService.save(projectGroup);
         }
     }
     
@@ -119,7 +119,7 @@ public class ProjectGroupService {
      * 删除项目组
      */
     public void deleteProjectGroup(String groupName) {
-        projectGroupDao.deleteProjectGroup(groupName);
+        projectGroupRpcService.deleteProjectGroup(groupName);
     }
     
     /**
@@ -129,6 +129,6 @@ public class ProjectGroupService {
         ProjectSettingPO queryPo = new ProjectSettingPO();
         queryPo.setGroupName(groupName);
         queryPo.setProjectName(projectName);
-        return projectSettingDao.queryOne(queryPo);
+        return projectSettingRpcService.queryOne(queryPo);
     }
 } 

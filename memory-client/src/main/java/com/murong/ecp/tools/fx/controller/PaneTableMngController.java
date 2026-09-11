@@ -8,11 +8,11 @@ import com.murong.ecp.tools.fx.domain.service.database.DataBaseHandler;
 import com.murong.ecp.tools.fx.domain.service.database.TableEntityService;
 import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.TableDataDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.TableDataRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDataPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDiffPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DbConnectionPO;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.DbConnectionDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrSpringContextHolder;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.ImpddlDialogUtil;
@@ -61,7 +61,7 @@ public class PaneTableMngController {
     @Autowired
     GlobalProperties globalProps;
     @Autowired
-    private TableDataDao tableDataDao;
+    private TableDataRpcService tableDataRpcService;
     @Autowired
     private TableEntityService tableEntityService;
     @Autowired
@@ -71,7 +71,7 @@ public class PaneTableMngController {
     @Autowired
     private DataMigrationService dataMigrationService;
     @Autowired
-    private DbConnectionDao dbConnectionDao;
+    private DbConnectionRpcService dbConnectionRpcService;
 
 
     @FXML
@@ -136,7 +136,7 @@ public class PaneTableMngController {
         reqPO.setAppName(globalProps.getAppName());
         reqPO.setProjectName(globalProps.getProjectName());
         reqPO.setGroupName(globalProps.getGroupName());
-        List<TableDataPO> list = tableDataDao.queryForList(reqPO);
+        List<TableDataPO> list = tableDataRpcService.queryForList(reqPO);
         transactionList.setAll(list);
         tableTableView.setItems(transactionList);
         tableTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -220,7 +220,7 @@ public class PaneTableMngController {
             wherePO.setTableNameCamel(po.getTableNameCamel());
             wherePO.setGroupName(po.getGroupName());
             wherePO.setProjectName(po.getProjectName());
-            tableDataDao.updateByOne(tableDataPO, wherePO);
+            tableDataRpcService.updateByOne(tableDataPO, wherePO);
         }));
         
         // 设置修改DB列为ToggleSwitch
@@ -233,7 +233,7 @@ public class PaneTableMngController {
             wherePO.setTableNameCamel(po.getTableNameCamel());
             wherePO.setGroupName(po.getGroupName());
             wherePO.setProjectName(po.getProjectName());
-            tableDataDao.updateByOne(tableDataPO, wherePO);
+            tableDataRpcService.updateByOne(tableDataPO, wherePO);
         }));
         setCopyableCellFactory(statusColumn, po -> {
             if (po.getStatus() == null) return "";
@@ -349,7 +349,7 @@ public class PaneTableMngController {
                 newReqPO.setAppName(globalProps.getAppName());
                 newReqPO.setProjectName(globalProps.getProjectName());
                 newReqPO.setGroupName(globalProps.getGroupName());
-                List<TableDataPO> newList = tableDataDao.queryForList(newReqPO);
+                List<TableDataPO> newList = tableDataRpcService.queryForList(newReqPO);
                 transactionList.clear();
                 transactionList.setAll(newList);
                 tableTableView.setItems(transactionList);
@@ -359,7 +359,7 @@ public class PaneTableMngController {
                 newReqPO.setProjectName(globalProps.getProjectName());
                 newReqPO.setGroupName(globalProps.getGroupName());
                 newReqPO.setLableName(newVal);
-                List<TableDataPO> newList = tableDataDao.queryForList(newReqPO);
+                List<TableDataPO> newList = tableDataRpcService.queryForList(newReqPO);
                 transactionList.clear();
                 transactionList.setAll(newList);
                 tableTableView.setItems(transactionList);
@@ -684,9 +684,9 @@ public class PaneTableMngController {
             reqPO.setAppName(globalProps.getAppName());
             reqPO.setProjectName(globalProps.getProjectName());
             reqPO.setGroupName(globalProps.getGroupName());
-            list = tableDataDao.queryForList(reqPO);
+            list = tableDataRpcService.queryForList(reqPO);
         }else {
-            list = tableDataDao.queryForSearch(name);
+            list = tableDataRpcService.queryForSearch(name);
         }
 
         transactionList.setAll(list);
@@ -882,7 +882,7 @@ public class PaneTableMngController {
                     wherePO.setGroupName(po.getGroupName());
                     wherePO.setProjectName(po.getProjectName());
                     
-                    tableDataDao.delete(wherePO);
+                    tableDataRpcService.delete(wherePO);
                     ViewUtils.alertForSucess("表记录删除成功！");
                     // 刷新表格数据
                     refreshTable();
@@ -1143,7 +1143,7 @@ public class PaneTableMngController {
             queryPO.setEnvName(envName);
             
             // 查询数据库连接配置
-            List<DbConnectionPO> connections = dbConnectionDao.queryForList(queryPO);
+            List<DbConnectionPO> connections = dbConnectionRpcService.queryForList(queryPO);
             
             if (connections != null && !connections.isEmpty()) {
                 // 优先返回主数据库连接
@@ -1159,7 +1159,7 @@ public class PaneTableMngController {
             // 如果没有找到配置，尝试查询"all"环境的配置
             queryPO.setAppName("all");
             queryPO.setProjectName("all");
-            connections = dbConnectionDao.queryForList(queryPO);
+            connections = dbConnectionRpcService.queryForList(queryPO);
             
             if (connections != null && !connections.isEmpty()) {
                 for (DbConnectionPO conn : connections) {

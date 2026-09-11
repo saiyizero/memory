@@ -2,7 +2,7 @@ package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.entity.RxField;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.SqlDialogUtil;
@@ -69,7 +69,7 @@ public class PaneCommonObjController implements Initializable {
     }
 
     @Autowired
-    private CommonClassDao commonClassDao;
+    private CommonClassRpcService commonClassRpcService;
 
     @Autowired
     private GlobalProperties globalProps;
@@ -390,7 +390,7 @@ public class PaneCommonObjController implements Initializable {
             }
             
             // 保存到数据库
-            commonClassDao.updateByOne(selected, selected);
+            commonClassRpcService.updateByOne(selected, selected);
             new Alert(Alert.AlertType.INFORMATION, "保存成功").showAndWait();
             tableView.refresh();
         });
@@ -430,7 +430,7 @@ public class PaneCommonObjController implements Initializable {
         CommonClassPO query = new CommonClassPO();
         query.setAppName(globalProps.getAppName());
         query.setGroupName(globalProps.getGroupName());
-        List<CommonClassPO> list = commonClassDao.queryForList(query);
+        List<CommonClassPO> list = commonClassRpcService.queryForList(query);
         dataList.setAll(list);
         
         // 监听每个PO的selectedProperty

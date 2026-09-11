@@ -7,7 +7,7 @@ import com.murong.ecp.tools.fx.domain.factory.TableEntityFactory;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.enums.DiffTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.TableDiffDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.TableDiffRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDataPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDiffPO;
 import com.murong.ecp.tools.fx.infrastructure.view.SelectDialogUtil;
@@ -30,7 +30,7 @@ import java.util.Map;
 public class TableDiffService {
 
     @Autowired
-    private TableDiffDao tableDiffDao;
+    private TableDiffRpcService tableDiffRpcService;
     
     @Autowired
     private TableEntityFactory tableEntityFactory;
@@ -135,7 +135,7 @@ public class TableDiffService {
                 progressCallback.accept(0.95, "正在保存差异记录...");
             }
             if (!diffList.isEmpty()) {
-                tableDiffDao.batchSave(diffList);
+                tableDiffRpcService.batchSave(diffList);
             }
 
             // 清理远程数据库连接
@@ -342,7 +342,7 @@ public class TableDiffService {
      */
     public CrResult<List<TableDiffPO>> queryDiffRecords(TableDiffPO query) {
         try {
-            List<TableDiffPO> records = tableDiffDao.queryForListWithCustomMapper(query);
+            List<TableDiffPO> records = tableDiffRpcService.queryForListWithCustomMapper(query);
             
             CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
             crResult.setData(records);
@@ -370,7 +370,7 @@ public class TableDiffService {
                 deleteQuery.setCompareEnv(compareEnv);
                 
                 // 执行删除
-                tableDiffDao.delete(deleteQuery);
+                tableDiffRpcService.delete(deleteQuery);
             }
             System.out.println("已删除 " + selectedTables.size() + " 张表的旧差异记录");
         } catch (Exception e) {

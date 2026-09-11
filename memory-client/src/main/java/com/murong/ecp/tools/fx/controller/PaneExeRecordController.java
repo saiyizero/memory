@@ -3,8 +3,8 @@ package com.murong.ecp.tools.fx.controller;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.enums.ExeStatusEnum;
 import com.murong.ecp.tools.fx.enums.MenuEnum;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ExeSqlRecordDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserProjSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ExeSqlRecordRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.domain.service.database.ExecuteSqlService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ExeSqlRecordPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
@@ -33,9 +33,9 @@ import java.util.List;
 @Component
 public class PaneExeRecordController {
     @Autowired
-    private ExeSqlRecordDao exeSqlRecordDao;
+    private ExeSqlRecordRpcService exeSqlRecordRpcService;
     @Autowired
-    private UserProjSettingDao UserProjSettingDao;
+    private UserProjSettingRpcService UserProjSettingRpcService;
 
     @FXML private DatePicker startDatePicker;
     @FXML private DatePicker endDatePicker;
@@ -77,7 +77,7 @@ public class PaneExeRecordController {
         envComboBox.getSelectionModel().selectFirst();
         // 初始化schema下拉框
         schemaComboBox.getItems().add("全部");
-        List<UserProjSettingPO> projectParams = UserProjSettingDao.queryForList(new UserProjSettingPO());
+        List<UserProjSettingPO> projectParams = UserProjSettingRpcService.queryForList(new UserProjSettingPO());
         projectParams.stream().map(UserProjSettingPO::getSchemaNm).distinct().forEach(schema -> {
             if (schema != null && !schema.isEmpty()) schemaComboBox.getItems().add(schema);
         });
@@ -333,7 +333,7 @@ public class PaneExeRecordController {
         if (StringUtils.isNotBlank(keyword)) {
             query.setKeyword(keyword); // 你需要在 ExeSqlRecordQuery 和 Dao 层支持关键字查询
         }
-        List<ExeSqlRecordPO> exeSqlRecordLst = exeSqlRecordDao.queryByDateRange(query);
+        List<ExeSqlRecordPO> exeSqlRecordLst = exeSqlRecordRpcService.queryByDateRange(query);
         exeSqlRecordLst.forEach(exeSqlRecord -> {
             String rawDate = exeSqlRecord.getExeDate();
             if (rawDate != null && rawDate.length() == 8) {

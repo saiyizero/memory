@@ -7,9 +7,13 @@ import com.murong.ecp.tools.fx.enums.FlgEnum;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.http.MemoryHttpClient;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.*;
+import com.murong.ecp.tools.fx.infrastructure.repository.dao.LocalSettingDao;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.*;
+import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjGroupRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -38,12 +42,12 @@ public class LoginService {
 
 
     public void absGlobalPropes() {
-        UserProjGroupDao userProjGroupDao = applicationContext.getBean(UserProjGroupDao.class);
-        UserProjGroupPO userProjGrp = userProjGroupDao.queryCurGroup();
+        UserProjGroupRpcService userProjGroupRpcService = applicationContext.getBean(UserProjGroupRpcService.class);
+        UserProjGroupPO userProjGrp = userProjGroupRpcService.queryCurGroup();
         if(userProjGrp!=null){
             globalProperties.setGroupName(userProjGrp.getGroupName());
-            UserProjSettingDao userProjSettingDao = applicationContext.getBean(UserProjSettingDao.class);
-            UserProjSettingPO userProjSetting = userProjSettingDao.queryCurProject(userProjGrp.getGroupName());
+            UserProjSettingRpcService userProjSettingRpcService = applicationContext.getBean(UserProjSettingRpcService.class);
+            UserProjSettingPO userProjSetting = userProjSettingRpcService.queryCurProject(userProjGrp.getGroupName());
             if(userProjSetting!=null){
                 globalProperties.setProjectName(userProjSetting.getProjectName());
                 globalProperties.setAppPort(userProjSetting.getAppPort());
@@ -54,8 +58,8 @@ public class LoginService {
                 dbConnReqPO.setProjectName(userProjSetting.getProjectName());
                 dbConnReqPO.setGroupName(userProjSetting.getGroupName());
                 dbConnReqPO.setMainFlg("1");
-                DbConnectionDao dbConnectionDao = applicationContext.getBean(DbConnectionDao.class);
-                DbConnectionPO mainDbConn = dbConnectionDao.queryOne(dbConnReqPO);
+                DbConnectionRpcService dbConnectionRpcService = applicationContext.getBean(DbConnectionRpcService.class);
+                DbConnectionPO mainDbConn = dbConnectionRpcService.queryOne(dbConnReqPO);
 
                 if (mainDbConn != null) {
                     DbConfig dbConfig = new DbConfig(mainDbConn);
@@ -69,8 +73,8 @@ public class LoginService {
                 projectFolderPO.setProjectName(userProjSetting.getProjectName());
                 projectFolderPO.setGroupName(userProjSetting.getGroupName());
                 projectFolderPO.setAppName(userProjSetting.getAppName());
-                ProjectFolderDao projectFolderDao = applicationContext.getBean(ProjectFolderDao.class);
-                List<ProjectFolderPO> projectDirLst = projectFolderDao.queryForList(projectFolderPO);
+                ProjectFolderRpcService projectFolderRpcService = applicationContext.getBean(ProjectFolderRpcService.class);
+                List<ProjectFolderPO> projectDirLst = projectFolderRpcService.queryForList(projectFolderPO);
                 if (!CollectionUtils.isEmpty(projectDirLst)) {
                     globalProperties.setModules(projectDirLst);
                 }

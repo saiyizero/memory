@@ -4,9 +4,9 @@ import com.murong.ecp.tools.fx.domain.entity.InterFaceEntity;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.converter.InterfaceConvert;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.EnumDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.InterfaceDataHisDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataHisRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataHisPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
@@ -20,31 +20,31 @@ import java.util.List;
 @Service
 public class InterFaceEntityService {
     @Autowired
-    InterfaceDataDao interfaceDataDao;
+    InterfaceDataRpcService interfaceDataRpcService;
     @Autowired
-    InterfaceDataHisDao interfaceDataHisDao;
+    InterfaceDataHisRpcService interfaceDataHisRpcService;
     @Autowired
-    EnumDictDao enumDictDao;
+    EnumDictRpcService enumDictRpcService;
     @Autowired
     GlobalProperties globalProps;
     @Autowired
     JavaCodeService javaCodeService;
 
     public CrResult deleteByEnums(String appName) {
-        enumDictDao.batchBackUp(globalProps.getGroupName(), appName);
+        enumDictRpcService.batchBackUp(globalProps.getGroupName(), appName);
         EnumDictPO po = new EnumDictPO();
         po.setAppName(appName);
         po.setGroupName(globalProps.getGroupName());
-        enumDictDao.batchDelete(po);
+        enumDictRpcService.batchDelete(po);
         return CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
     }
 
     public CrResult deleteByAppName(String appName) {
-        interfaceDataDao.batchBackUp(globalProps.getGroupName(), appName);
+        interfaceDataRpcService.batchBackUp(globalProps.getGroupName(), appName);
         InterfaceDataPO po = new InterfaceDataPO();
         po.setAppName(appName);
         po.setGroupName(globalProps.getGroupName());
-        interfaceDataDao.batchDelete(po);
+        interfaceDataRpcService.batchDelete(po);
         return CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
     }
 
@@ -62,14 +62,14 @@ public class InterFaceEntityService {
             hisPO.setClassName(po.getClassName());
             hisPO.setTransName(po.getTransName());
 
-            InterfaceDataHisPO interfaceDataHisPO = interfaceDataHisDao.queryInfcDataHis(hisPO);
+            InterfaceDataHisPO interfaceDataHisPO = interfaceDataHisRpcService.queryInfcDataHis(hisPO);
             if(interfaceDataHisPO != null && (StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentEn())
                     ||StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentZh()))) {
                 po.setTransCommentEn(interfaceDataHisPO.getTransCommentEn());
                 po.setTransCommentZh(interfaceDataHisPO.getTransCommentZh());
             }
 
-            interfaceDataDao.save(po);
+            interfaceDataRpcService.save(po);
             return CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         } catch (Exception e) {
             CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
@@ -80,7 +80,7 @@ public class InterFaceEntityService {
 
     public List<String> getApiNameList() {
         String sql = "select trans_name from interface_data where app_name='" + globalProps.getAppName() + "' and group_name='" + globalProps.getGroupName() + "'";
-        return interfaceDataDao.queryListBySql(sql, String.class);
+        return interfaceDataRpcService.queryListBySql(sql, String.class);
     }
 
     public InterFaceEntity getByTransName(String transName,String interfaceName) {
@@ -89,7 +89,7 @@ public class InterFaceEntityService {
         po.setInterfaceName(interfaceName);
         po.setProjectName(globalProps.getProjectName());
         po.setGroupName(globalProps.getGroupName());
-        InterfaceDataPO result = interfaceDataDao.queryOne(po);
+        InterfaceDataPO result = interfaceDataRpcService.queryOne(po);
         return InterfaceConvert.toEntity(result);
     }
 

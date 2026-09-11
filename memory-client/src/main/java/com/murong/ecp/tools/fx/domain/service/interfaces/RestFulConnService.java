@@ -3,7 +3,7 @@ package com.murong.ecp.tools.fx.domain.service.interfaces;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.murong.ecp.tools.fx.domain.entity.RxField;
 import com.murong.ecp.tools.fx.infrastructure.converter.DatabaseConvert;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -16,12 +16,12 @@ import java.util.LinkedHashMap;
 @Service
 public class RestFulConnService {
     @Autowired
-    CommonClassDao commonClassDao;
+    CommonClassRpcService commonClassRpcService;
     /*
     * 给请json报文里面设置gda
     * */
     public String setGdaForReqJson(String reqJson, String txCd, String commonParamJson) {
-        CommonClassPO commonClassPO = commonClassDao.queryByClassName("AbstractBaseGDA");
+        CommonClassPO commonClassPO = commonClassRpcService.queryByClassName("AbstractBaseGDA");
         List<RxField> rxFields = DatabaseConvert.jsonToFields(commonClassPO.getFieldsJson());
 
         try {

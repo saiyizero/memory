@@ -9,8 +9,8 @@ import com.murong.ecp.tools.fx.domain.service.database.DataBaseHandler;
 import com.murong.ecp.tools.fx.domain.service.database.TableEntityService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.JavaCodeService;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.BizDictDao;
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.CommonClassDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.CommonClassRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.CommonClassPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrStringUtils;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
@@ -100,9 +100,9 @@ public class PaneTableController implements Initializable {
     @Autowired
     TableEntityService tableEntityService;
     @Autowired
-    private BizDictDao bizDictDao;
+    private BizDictRpcService bizDictRpcService;
     @Autowired
-    private CommonClassDao commonClassDao;
+    private CommonClassRpcService commonClassRpcService;
 
     @FXML
     private Button saveButton;
@@ -261,7 +261,7 @@ public class PaneTableController implements Initializable {
         StringConverter<String> converter = new DefaultStringConverter();
 
         columnNameColumn.setCellValueFactory(cellData -> cellData.getValue().columnNameProperty());
-        columnNameColumn.setCellFactory(col -> new BizDictEditingCell<>(converter, bizDictDao, bizDict -> {
+        columnNameColumn.setCellFactory(col -> new BizDictEditingCell<>(converter, bizDictRpcService, bizDict -> {
             // 当用户选择业务字段时，自动填充相关字段
             ColumnSchemaVo vo = columnsTable.getItems().get(columnNameColumn.getTableView().getSelectionModel().getSelectedIndex());
             if (vo != null) {
@@ -1378,7 +1378,7 @@ public class PaneTableController implements Initializable {
                 query.setClassType("TAB");
                 query.setAppName("pub");
                 query.setGroupName(globalProps.getGroupName());
-                List<CommonClassPO> list = commonClassDao.queryForList(query);
+                List<CommonClassPO> list = commonClassRpcService.queryForList(query);
                 
                 for (CommonClassPO po : list) {
                     if (po.getClassName() != null && po.getClassPath() != null) {

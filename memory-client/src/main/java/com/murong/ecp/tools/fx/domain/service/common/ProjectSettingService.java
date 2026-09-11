@@ -1,6 +1,6 @@
 package com.murong.ecp.tools.fx.domain.service.common;
 
-import com.murong.ecp.tools.fx.infrastructure.repository.dao.ProjectSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import java.util.List;
 public class ProjectSettingService {
     
     @Autowired
-    private ProjectSettingDao projectSettingDao;
+    private ProjectSettingRpcService projectSettingRpcService;
     
     /**
      * 根据项目组名称和项目名称查询项目设置
@@ -20,21 +20,21 @@ public class ProjectSettingService {
         ProjectSettingPO queryPo = new ProjectSettingPO();
         queryPo.setGroupName(groupName);
         queryPo.setProjectName(projectName);
-        return projectSettingDao.queryOne(queryPo);
+        return projectSettingRpcService.queryOne(queryPo);
     }
     
     /**
      * 保存项目设置
      */
     public void saveProjectSetting(ProjectSettingPO projectSetting) {
-        projectSettingDao.save(projectSetting);
+        projectSettingRpcService.save(projectSetting);
     }
     
     /**
      * 查询所有项目设置
      */
     public List<ProjectSettingPO> queryAllProjectSettings() {
-        return projectSettingDao.queryForList(new ProjectSettingPO());
+        return projectSettingRpcService.queryForList(new ProjectSettingPO());
     }
     
     /**
@@ -43,6 +43,6 @@ public class ProjectSettingService {
     public List<ProjectSettingPO> queryProjectSettingsByGroupName(String groupName) {
         ProjectSettingPO queryPo = new ProjectSettingPO();
         queryPo.setGroupName(groupName);
-        return projectSettingDao.queryForList(queryPo);
+        return projectSettingRpcService.queryForList(queryPo);
     }
 }
