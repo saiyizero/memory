@@ -20,4 +20,20 @@ public class ServerInfoDao extends DaoSupport<ServerInfoPO> {
         String sql = "update server_info set scan_flg=? where group_name=? and app_name=?";
         super.updateBySql(sql, scanFlg, groupName, appName);
     }
+
+    /**
+     * @return true 插入成功；false 已存在
+     */
+    public boolean insertIfAbsent(ServerInfoPO po) {
+        ServerInfoPO query = new ServerInfoPO();
+        query.setIp(po.getIp());
+        query.setGroupName(po.getGroupName());
+        query.setProjectName(po.getProjectName());
+        query.setAppName(po.getAppName());
+        if (queryOne(query) != null) {
+            return false;
+        }
+        insert(po);
+        return true;
+    }
 } 

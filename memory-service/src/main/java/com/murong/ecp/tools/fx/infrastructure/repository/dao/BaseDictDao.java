@@ -2,6 +2,7 @@ package com.murong.ecp.tools.fx.infrastructure.repository.dao;
 
 import com.murong.ecp.tools.fx.infrastructure.repository.DaoSupport;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BatchWriteResult;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -74,6 +75,37 @@ public class BaseDictDao extends DaoSupport<BaseDictPO> {
      */
     public void updateByOne(BaseDictPO updatePo, BaseDictPO wherePo) {
         super.updateByOne(updatePo, wherePo);
+    }
+
+    /**
+     * 按 name_snake 存在则更新，否则插入。
+     */
+    public void upsert(BaseDictPO po) {
+        BaseDictPO where = new BaseDictPO();
+        where.setNameSnake(po.getNameSnake());
+        BaseDictPO existing = queryOne(where);
+        if (existing != null) {
+            updateByOne(po, where);
+        } else {
+            save(po);
+        }
+    }
+
+    public BatchWriteResult upsertAll(List<BaseDictPO> list) {
+        int successCount = 0;
+        int errorCount = 0;
+        if (list != null) {
+            for (BaseDictPO po : list) {
+                try {
+                    upsert(po);
+                    successCount++;
+                } catch (Exception e) {
+                    errorCount++;
+                    e.printStackTrace();
+                }
+            }
+        }
+        return BatchWriteResult.of(successCount, errorCount);
     }
 
     /**

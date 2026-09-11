@@ -6,6 +6,7 @@ import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.JavaTypeEnum;
 import com.murong.ecp.tools.fx.enums.DatabaseTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.rpc.BaseDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BatchWriteResult;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.FilteredEditingCell;
@@ -488,19 +489,8 @@ public class PaneBaseDictController {
      */
     private void saveSingleRecord(BaseDictPO baseDict) {
         try {
-            // 检查是否已存在
-            BaseDictPO baseDictPO = new BaseDictPO();
-            baseDictPO.setNameSnake(baseDict.getNameSnake());
-            BaseDictPO existing = baseDictRpcService.queryOne(baseDictPO);
-            if (existing != null) {
-                // 更新现有记录
-                baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
-                ViewUtils.alertForSucess("记录更新成功！");
-            } else {
-                // 插入新记录
-                baseDictRpcService.save(baseDict);
-                ViewUtils.alertForSucess("记录保存成功！");
-            }
+            baseDictRpcService.upsert(baseDict);
+            ViewUtils.alertForSucess("记录保存成功！");
             
             // 刷新列表
             doQuery();
@@ -877,21 +867,7 @@ public class PaneBaseDictController {
             
             // 批量保存到数据库
             if (!importedData.isEmpty()) {
-                for (BaseDictPO baseDict : importedData) {
-                    try {
-                        // 检查是否已存在
-                        BaseDictPO existing = baseDictRpcService.queryOne(baseDict);
-                        if (existing != null) {
-                            // 更新现有记录
-                            baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
-                        } else {
-                            // 插入新记录
-                            baseDictRpcService.save(baseDict);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("保存数据时出错: " + e.getMessage());
-                    }
-                }
+                baseDictRpcService.upsertAll(importedData);
             }
             
             System.out.println("导入完成: 成功 " + successCount + " 条，失败 " + errorCount + " 条");
@@ -987,15 +963,6 @@ public class PaneBaseDictController {
         }
     }
     
-    /**
-     * 创建更新条件
-     */
-    private BaseDictPO createWhereCondition(BaseDictPO baseDict) {
-        BaseDictPO wherePO = new BaseDictPO();
-        wherePO.setNameSnake(baseDict.getNameSnake());
-        return wherePO;
-    }
-
     /**
      * 导出Excel文件
      */
@@ -1211,26 +1178,9 @@ public class PaneBaseDictController {
      */
     private void saveChanges() {
         try {
-            int successCount = 0;
-            int errorCount = 0;
-            
-            for (BaseDictPO baseDict : dictList) {
-                try {
-                    // 检查是否已存在
-                    BaseDictPO existing = baseDictRpcService.queryOne(baseDict);
-                    if (existing != null) {
-                        // 更新现有记录
-                        baseDictRpcService.updateByOne(baseDict, createWhereCondition(baseDict));
-                    } else {
-                        // 插入新记录
-                        baseDictRpcService.save(baseDict);
-                    }
-                    successCount++;
-                } catch (Exception e) {
-                    errorCount++;
-                    System.err.println("保存基础字典 '" + baseDict.getNameSnake() + "' 时出错: " + e.getMessage());
-                }
-            }
+            BatchWriteResult writeResult = baseDictRpcService.upsertAll(new ArrayList<>(dictList));
+            int successCount = writeResult.getSuccessCount();
+            int errorCount = writeResult.getErrorCount();
             
             // 刷新列表
             doQuery();

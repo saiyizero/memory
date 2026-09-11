@@ -22,4 +22,9 @@ public class ServerInfoRpcService extends HttpDaoSupport<ServerInfoPO> {
     public void updateScanFlg(String groupName, String appName, String scanFlg) {
         invokeVoid("updateScanFlg", groupName, appName, scanFlg);
     }
+
+    public boolean insertIfAbsent(ServerInfoPO po) {
+        Boolean inserted = invoke("insertIfAbsent", Boolean.class, po);
+        return Boolean.TRUE.equals(inserted);
+    }
 }

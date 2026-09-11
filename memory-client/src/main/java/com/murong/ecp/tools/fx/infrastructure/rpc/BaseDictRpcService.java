@@ -82,4 +82,13 @@ public class BaseDictRpcService extends HttpDaoSupport<BaseDictPO> {
     public List<BaseDictPO> searchByName(String searchText) {
         return invokeList("searchByName", BaseDictPO.class, searchText);
     }
+
+    public void upsert(BaseDictPO po) {
+        invokeVoid("upsert", po);
+    }
+
+    public BatchWriteResult upsertAll(List<BaseDictPO> list) {
+        BatchWriteResult result = invoke("upsertAll", BatchWriteResult.class, list);
+        return result == null ? BatchWriteResult.of(0, 0) : result;
+    }
 }

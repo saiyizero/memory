@@ -6,6 +6,7 @@ import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.DaoSupport;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BatchWriteResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -135,5 +136,39 @@ public class BizDictDao extends DaoSupport<BizDictPO> {
         }else {
             return orgBizDictPO;
         }
+    }
+
+    /**
+     * 按业务主键存在则整行更新，否则插入（与界面保存语义一致，不同于 {@link #save} 的合并逻辑）。
+     */
+    public void upsert(BizDictPO po) {
+        BizDictPO wherePO = new BizDictPO();
+        wherePO.setGroupName(po.getGroupName());
+        wherePO.setProjectName(po.getProjectName());
+        wherePO.setNameCamel(po.getNameCamel());
+        wherePO.setAppName(po.getAppName());
+        BizDictPO existing = queryOne(wherePO);
+        if (existing != null) {
+            updateByOne(po, wherePO);
+        } else {
+            insert(po);
+        }
+    }
+
+    public BatchWriteResult upsertAll(List<BizDictPO> list) {
+        int successCount = 0;
+        int errorCount = 0;
+        if (list != null) {
+            for (BizDictPO po : list) {
+                try {
+                    upsert(po);
+                    successCount++;
+                } catch (Exception e) {
+                    errorCount++;
+                    e.printStackTrace();
+                }
+            }
+        }
+        return BatchWriteResult.of(successCount, errorCount);
     }
 }

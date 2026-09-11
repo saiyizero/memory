@@ -32,4 +32,13 @@ public class BizDictRpcService extends HttpDaoSupport<BizDictPO> {
     public BizDictPO save(BizDictPO po) {
         return invoke("save", BizDictPO.class, po);
     }
+
+    public void upsert(BizDictPO po) {
+        invokeVoid("upsert", po);
+    }
+
+    public BatchWriteResult upsertAll(List<BizDictPO> list) {
+        BatchWriteResult result = invoke("upsertAll", BatchWriteResult.class, list);
+        return result == null ? BatchWriteResult.of(0, 0) : result;
+    }
 }

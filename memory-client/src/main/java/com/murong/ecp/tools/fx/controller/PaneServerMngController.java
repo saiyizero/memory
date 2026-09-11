@@ -875,18 +875,6 @@ public class PaneServerMngController implements Initializable {
             String appPath = input.get("appPath");
             String appProp = input.get("appProp");
             
-            // 主键校验（ip+groupName+projectName+appName）
-            ServerInfoPO query = new ServerInfoPO();
-            query.setIp(ip);
-            query.setGroupName(groupName);
-            query.setProjectName(projectName);
-            query.setAppName(appName);
-            ServerInfoPO exist = serverInfoRpcService.queryOne(query);
-            if (exist != null) {
-                ViewUtils.alertForFail("微服务已存在");
-                return;
-            }
-            
             ServerInfoPO po = new ServerInfoPO();
             po.setGroupName(groupName);
             po.setProjectName(projectName);
@@ -902,7 +890,10 @@ public class PaneServerMngController implements Initializable {
 
             
             try {
-                serverInfoRpcService.insert(po);
+                if (!serverInfoRpcService.insertIfAbsent(po)) {
+                    ViewUtils.alertForFail("微服务已存在");
+                    return;
+                }
                 ViewUtils.alertForSucess("添加成功");
                 // 刷新页面
                 List<ServiceInfoEntity> newServiceList = sshDomainService.getServiceList(globalProps.getGroupName());

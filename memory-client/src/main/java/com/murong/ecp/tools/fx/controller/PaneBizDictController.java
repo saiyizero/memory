@@ -7,6 +7,7 @@ import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.JavaTypeEnum;
 import com.murong.ecp.tools.fx.enums.DatabaseTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.rpc.BaseDictRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.BatchWriteResult;
 import com.murong.ecp.tools.fx.infrastructure.rpc.BizDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.EnumDictRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
@@ -1705,21 +1706,7 @@ public class PaneBizDictController {
             
             // 批量保存到数据库
             if (!importedData.isEmpty()) {
-                for (BizDictPO bizDict : importedData) {
-                    try {
-                        // 检查是否已存在
-                        BizDictPO existing = bizDictRpcService.queryOne(bizDict);
-                        if (existing != null) {
-                            // 更新现有记录
-                            bizDictRpcService.updateByOne(bizDict, createWhereCondition(bizDict));
-                        } else {
-                            // 插入新记录
-                            bizDictRpcService.save(bizDict);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("保存数据时出错: " + e.getMessage());
-                    }
-                }
+                bizDictRpcService.upsertAll(importedData);
             }
             
             System.out.println("导入完成: 成功 " + successCount + " 条，失败 " + errorCount + " 条");
@@ -2292,23 +2279,8 @@ public class PaneBizDictController {
      */
     private void saveSingleRecord(BizDictPO bizDict) {
         try {
-            // 检查是否已存在
-            BizDictPO wherePO = new BizDictPO();
-            wherePO.setGroupName(bizDict.getGroupName());
-            wherePO.setProjectName(bizDict.getProjectName());
-            wherePO.setNameCamel(bizDict.getNameCamel());
-            wherePO.setAppName(bizDict.getAppName());
-            
-            BizDictPO existing = bizDictRpcService.queryOne(wherePO);
-            if (existing != null) {
-                // 更新现有记录
-                bizDictRpcService.updateByOne(bizDict, wherePO);
-                ViewUtils.alertForSucess("记录更新成功！");
-            } else {
-                // 插入新记录
-                bizDictRpcService.save(bizDict);
-                ViewUtils.alertForSucess("记录保存成功！");
-            }
+            bizDictRpcService.upsert(bizDict);
+            ViewUtils.alertForSucess("记录保存成功！");
             
             // 刷新列表
             doQuery();
@@ -2324,26 +2296,9 @@ public class PaneBizDictController {
      */
     private void saveChanges() {
         try {
-            int successCount = 0;
-            int errorCount = 0;
-            
-            for (BizDictPO bizDict : dictList) {
-                try {
-                    // 检查是否已存在
-                    BizDictPO existing = bizDictRpcService.queryOne(bizDict);
-                    if (existing != null) {
-                        // 更新现有记录
-                        bizDictRpcService.updateByOne(bizDict, createWhereCondition(bizDict));
-                    } else {
-                        // 插入新记录
-                        bizDictRpcService.save(bizDict);
-                    }
-                    successCount++;
-                } catch (Exception e) {
-                    errorCount++;
-                    System.err.println("保存业务字典 '" + bizDict.getNameCamel() + "' 时出错: " + e.getMessage());
-                }
-            }
+            BatchWriteResult writeResult = bizDictRpcService.upsertAll(new ArrayList<>(dictList));
+            int successCount = writeResult.getSuccessCount();
+            int errorCount = writeResult.getErrorCount();
             
             // 刷新列表
             doQuery();

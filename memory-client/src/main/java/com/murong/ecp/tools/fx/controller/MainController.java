@@ -3,14 +3,13 @@ package com.murong.ecp.tools.fx.controller;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.EnvironmentService;
 import com.murong.ecp.tools.fx.domain.service.common.UserPreferenceService;
-import com.murong.ecp.tools.fx.domain.service.common.UserProjGroupService;
 import com.murong.ecp.tools.fx.enums.MenuEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.LocalSettingDao;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
-import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjGroupRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.WorkspaceBootstrapVO;
+import com.murong.ecp.tools.fx.infrastructure.rpc.WorkspaceRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjGroupPO;
-import com.murong.ecp.tools.fx.domain.service.common.ProjectGroupService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
 import com.murong.ecp.tools.fx.infrastructure.view.DoubleClickTabPane;
@@ -65,11 +64,9 @@ public class MainController {
     @Autowired
     private ApplicationContext applicationContext;
     @Autowired
-    private UserProjGroupRpcService userProjGroupRpcService;
+    private WorkspaceRpcService workspaceRpcService;
     @Autowired
     private UserProjSettingRpcService userProjSettingRpcService;
-    @Autowired
-    private UserProjGroupService userProjGroupService;
     @Autowired
     private GlobalProperties globalPropes;
     @Autowired
@@ -169,28 +166,19 @@ public class MainController {
         
         // LOGO图片
         logoImage.setImage(new Image(getClass().getResourceAsStream("/image/logo.png")));
-        // 查询所有项目群
-        List<UserProjGroupPO> groupLst = userProjGroupRpcService.queryForList(new UserProjGroupPO());
+        WorkspaceBootstrapVO workspace = workspaceRpcService.bootstrap();
+        List<UserProjGroupPO> groupLst = workspace.getGroups() == null ? List.of() : workspace.getGroups();
         envComboBox.getItems().clear();
         envComboBox.getItems().addAll(groupLst.stream().map(UserProjGroupPO::getGroupName).collect(Collectors.toList()));
-        // 默认选中curFlag=Y的项目群，否则选第一个
-        int defaultGroupIdx = 0;
-        for (int i = 0; i < groupLst.size(); i++) {
-            if ("Y".equalsIgnoreCase(groupLst.get(i).getCurFlag())) {
-                defaultGroupIdx = i;
-                break;
-            }
+        if (workspace.getCurrentGroupName() != null && envComboBox.getItems().contains(workspace.getCurrentGroupName())) {
+            envComboBox.getSelectionModel().select(workspace.getCurrentGroupName());
+        } else if (!envComboBox.getItems().isEmpty()) {
+            envComboBox.getSelectionModel().selectFirst();
         }
-        envComboBox.getSelectionModel().select(defaultGroupIdx);
 
-        // 查询该项目群下所有项目
-        UserProjSettingPO projectSettingPO = new UserProjSettingPO();
-        projectSettingPO.setGroupName(envComboBox.getValue());
-        projectSettingPO.setShowFlag("Y");
-        List<UserProjSettingPO> projectLst = userProjSettingRpcService.queryForList(projectSettingPO);
+        List<UserProjSettingPO> projectLst = workspace.getProjects() == null ? List.of() : workspace.getProjects();
         dsComboBox.getItems().clear();
         dsComboBox.getItems().addAll(projectLst.stream().map(UserProjSettingPO::getProjectName).collect(Collectors.toList()));
-        // 默认选中curFlag=Y的项目，否则选第一个
         int defaultEnvIdx = 0;
         for (int i = 0; i < projectLst.size(); i++) {
             if ("Y".equalsIgnoreCase(projectLst.get(i).getCurFlag())) {
@@ -198,17 +186,15 @@ public class MainController {
                 break;
             }
         }
-        dsComboBox.getSelectionModel().select(defaultEnvIdx);
+        if (!dsComboBox.getItems().isEmpty()) {
+            dsComboBox.getSelectionModel().select(defaultEnvIdx);
+        }
 
         // 项目群下拉切换，刷新项目名称下拉
         envComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                // 切换项目组 - 使用ProjectGroupService的方法
-                userProjGroupService.switchProjectGroup(newVal);
-
-                UserProjSettingPO envReqPO = new UserProjSettingPO();
-                envReqPO.setGroupName(newVal);
-                List<UserProjSettingPO> projectEnvLst = userProjSettingRpcService.queryForList(envReqPO);
+                WorkspaceBootstrapVO switched = workspaceRpcService.switchGroup(newVal);
+                List<UserProjSettingPO> projectEnvLst = switched.getProjects();
 
                 dsComboBox.getItems().clear();
                 if (projectEnvLst != null) {
