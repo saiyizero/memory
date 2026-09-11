@@ -30,6 +30,10 @@ public class InterfaceDataRpcService extends HttpDaoSupport<InterfaceDataPO> {
         return super.queryForList(po);
     }
 
+    public List<InterfaceDataPO> queryForListSummary(InterfaceDataPO po) {
+        return invokeList("queryForListSummary", InterfaceDataPO.class, po);
+    }
+
     public List<InterfaceDataPO> queryForSearch(String appName, String text) {
         return invokeList("queryForSearch", InterfaceDataPO.class, appName, text);
     }

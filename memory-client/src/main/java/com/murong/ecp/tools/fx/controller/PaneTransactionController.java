@@ -35,7 +35,9 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javafx.scene.Node;
 
 @Component
@@ -96,6 +98,8 @@ public class PaneTransactionController implements Initializable {
     private TextField nameFilterField; // 名称输入框
     @FXML
     private Button queryButton;        // 查询按钮
+    private final AtomicInteger loadSeq = new AtomicInteger();
+    private boolean suppressLabelChange;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -103,23 +107,23 @@ public class PaneTransactionController implements Initializable {
         if (!ViewUtils.validateProjectConfiguration(globalProps)) {
             return; // 配置不完整，直接返回，不初始化界面
         }
-        
-        // 延迟加载数据，避免在initialize阶段出现依赖注入问题
-        Platform.runLater(() -> {
-            try {
-                InterfaceDataPO reqPO = new InterfaceDataPO();
-                reqPO.setGroupName(globalProps.getGroupName());
-                reqPO.setAppName(globalProps.getAppName());
-                List<InterfaceDataPO> list = interfaceDataRpcService.queryForList(reqPO);
-                transactionList.setAll(list);
-                transactionTableView.setItems(transactionList);
-                transactionTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-                nameFilterField.clear();
-        // 初始化每行的选中状态
-        selectedList.clear();
-        for (int i = 0; i < transactionList.size(); i++) {
-            selectedList.add(new SimpleBooleanProperty(false));
+        try {
+            setupTableUi();
+            loadTableDataAsync(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("初始化交易接口页面失败: " + e.getMessage());
+            ViewUtils.alertForFail("交易接口页面初始化失败: " + e.getMessage());
+        }
+    }
+
+    private void setupTableUi() {
+        transactionTableView.setItems(transactionList);
+        transactionTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        transactionTableView.setPlaceholder(new Label("正在加载..."));
+        if (nameFilterField != null) {
+            nameFilterField.clear();
         }
 
         // 全选/全不选功能
@@ -276,63 +280,104 @@ public class PaneTransactionController implements Initializable {
             }
         });
 
-                // 填充标签名称下拉框，增加ALL选项
-                List<String> labelNames = transactionList.stream()
-                        .map(InterfaceDataPO::getLableName)
-                        .filter(name -> name != null && !name.isEmpty())
-                        .distinct()
-                        .toList();
-                labenameComboBox.getItems().setAll();
-                labenameComboBox.getItems().add("ALL");
-                labenameComboBox.getItems().addAll(labelNames);
-                labenameComboBox.setValue("ALL");
-                labenameComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-                    if (newVal == null || newVal.isEmpty() || "ALL".equals(newVal)) {
-                        // 选中ALL或未选中标签，显示全部
-                        InterfaceDataPO newReqPO = new InterfaceDataPO();
-                        newReqPO.setAppName(globalProps.getAppName());
-                        List<InterfaceDataPO> newList = interfaceDataRpcService.queryForList(newReqPO);
-                        transactionList.clear();
-                        transactionList.setAll(newList);
-                        transactionTableView.setItems(transactionList);
-                    } else {
-                        // 只显示标签名等于选中值的接口
-                        InterfaceDataPO newReqPO = new InterfaceDataPO();
-                        newReqPO.setAppName(globalProps.getAppName());
-                        newReqPO.setLableName(newVal);
-                        List<InterfaceDataPO> newList = interfaceDataRpcService.queryForList(newReqPO);
-                        transactionList.clear();
-                        transactionList.setAll(newList);
-                        transactionTableView.setItems(transactionList);
-                    }
-                });
+        suppressLabelChange = true;
+        try {
+            labenameComboBox.getItems().setAll("ALL");
+            labenameComboBox.setValue("ALL");
+        } finally {
+            suppressLabelChange = false;
+        }
+        labenameComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (suppressLabelChange) {
+                return;
+            }
+            loadTableDataAsync(false);
+        });
 
-                syncApiButton.setOnAction(event -> syncApi());
+        syncApiButton.setOnAction(event -> syncApi());
 
-                importJarButton.setOnAction(event -> importJarFile());
+        importJarButton.setOnAction(event -> importJarFile());
 
-                addApiButton.setOnAction(event -> addNewApi());
+        addApiButton.setOnAction(event -> addNewApi());
 
-                exportButton.setOnAction(event -> showExportDialog());
+        exportButton.setOnAction(event -> showExportDialog());
 
-                // 绑定查询输入框和按钮
-                if (nameFilterField == null) {
-                    nameFilterField = (TextField) exportButton.getScene().lookup(".text-field[promptText='名称']");
+        if (queryButton != null) {
+            queryButton.setOnAction(event -> doQuery());
+        }
+    }
+
+    private void loadTableDataAsync(boolean refreshLabels) {
+        InterfaceDataPO reqPO = new InterfaceDataPO();
+        reqPO.setGroupName(globalProps.getGroupName());
+        reqPO.setAppName(globalProps.getAppName());
+        String selectedLabel = labenameComboBox == null ? null : labenameComboBox.getValue();
+        if (selectedLabel != null && !selectedLabel.isEmpty() && !"ALL".equals(selectedLabel)) {
+            reqPO.setLableName(selectedLabel);
+        }
+        queryAndApplyAsync(() -> interfaceDataRpcService.queryForListSummary(reqPO), refreshLabels);
+    }
+
+    private void queryAndApplyAsync(Supplier<List<InterfaceDataPO>> query, boolean refreshLabels) {
+        int seq = loadSeq.incrementAndGet();
+        transactionTableView.setPlaceholder(new Label("正在加载..."));
+        Thread loader = new Thread(() -> {
+            try {
+                List<InterfaceDataPO> list = query.get();
+                if (seq != loadSeq.get()) {
+                    return;
                 }
-                if (queryButton == null) {
-                    queryButton = (Button) exportButton.getScene().lookup(".button[text='查询']");
-                }
-                if (queryButton != null) {
-                    queryButton.setOnAction(event -> doQuery());
-                }
+                List<InterfaceDataPO> result = list == null ? List.of() : list;
+                Platform.runLater(() -> applyTableData(result, refreshLabels));
             } catch (Exception e) {
                 e.printStackTrace();
-                System.err.println("初始化交易接口页面失败: " + e.getMessage());
+                if (seq != loadSeq.get()) {
+                    return;
+                }
                 Platform.runLater(() -> {
-                    ViewUtils.alertForFail("交易接口页面初始化失败: " + e.getMessage());
+                    transactionTableView.setPlaceholder(new Label("加载失败"));
+                    ViewUtils.alertForFail("加载交易接口数据失败: " + e.getMessage());
                 });
             }
-        });
+        }, "transaction-list-loader");
+        loader.setDaemon(true);
+        loader.start();
+    }
+
+    private void applyTableData(List<InterfaceDataPO> list, boolean refreshLabels) {
+        transactionList.setAll(list);
+        transactionTableView.setItems(transactionList);
+        selectedList.clear();
+        for (int i = 0; i < transactionList.size(); i++) {
+            selectedList.add(new SimpleBooleanProperty(false));
+        }
+        if (selectAllCheckBox != null) {
+            selectAllCheckBox.setSelected(false);
+            selectAllCheckBox.setIndeterminate(false);
+        }
+        if (refreshLabels) {
+            fillLabelCombo(list);
+        }
+        transactionTableView.setPlaceholder(new Label(list.isEmpty() ? "暂无数据" : ""));
+        transactionTableView.refresh();
+    }
+
+    private void fillLabelCombo(List<InterfaceDataPO> list) {
+        List<String> labelNames = list.stream()
+                .map(InterfaceDataPO::getLableName)
+                .filter(name -> name != null && !name.isEmpty())
+                .distinct()
+                .toList();
+        suppressLabelChange = true;
+        try {
+            List<String> items = new ArrayList<>();
+            items.add("ALL");
+            items.addAll(labelNames);
+            labenameComboBox.getItems().setAll(items);
+            labenameComboBox.setValue("ALL");
+        } finally {
+            suppressLabelChange = false;
+        }
     }
 
     // 更新全选框状态
@@ -724,20 +769,18 @@ public class PaneTransactionController implements Initializable {
 
     @FXML
     private void refreshTable() {
-        // 重新加载数据
-        Platform.runLater(() -> {
-            try {
-                InterfaceDataPO reqPO = new InterfaceDataPO();
-                reqPO.setAppName(globalProps.getAppName());
-                List<InterfaceDataPO> list = interfaceDataRpcService.queryForList(reqPO);
-                transactionList.setAll(list);
-                transactionTableView.setItems(transactionList);
-                transactionTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("刷新交易接口数据失败: " + e.getMessage());
+        if (nameFilterField != null) {
+            nameFilterField.clear();
+        }
+        suppressLabelChange = true;
+        try {
+            if (labenameComboBox != null) {
+                labenameComboBox.setValue("ALL");
             }
-        });
+        } finally {
+            suppressLabelChange = false;
+        }
+        loadTableDataAsync(true);
     }
 
     /**
@@ -988,19 +1031,10 @@ public class PaneTransactionController implements Initializable {
         InterfaceDataPO reqPO = new InterfaceDataPO();
         reqPO.setAppName(globalProps.getAppName());
         reqPO.setGroupName(globalProps.getGroupName());
-        List<InterfaceDataPO> list=null;
         if (name != null && !name.isEmpty()) {
-            list = interfaceDataRpcService.queryForSearch(reqPO.getAppName(),name);
-        }else {
-            list = interfaceDataRpcService.queryForList(reqPO);
+            queryAndApplyAsync(() -> interfaceDataRpcService.queryForSearch(reqPO.getAppName(), name), false);
+        } else {
+            queryAndApplyAsync(() -> interfaceDataRpcService.queryForListSummary(reqPO), false);
         }
-        transactionList.setAll(list);
-        transactionTableView.setItems(transactionList);
-        // 重新初始化选中状态
-        selectedList.clear();
-        for (int i = 0; i < transactionList.size(); i++) {
-            selectedList.add(new SimpleBooleanProperty(false));
-        }
-        transactionTableView.refresh();
     }
 }
