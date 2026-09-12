@@ -38,6 +38,11 @@ memory/
 - **打包方式**: 可执行 JAR
 - **依赖**: memory-lib + memory-common，通过 HTTP 调用 memory-service
 
+### 项目远程数据库
+- **URL**: jdbc:postgresql://10.1.146.70:5433/m5sit?currentSchema=mmapi
+- **用户名**: memory
+- **密码**: memory@123
+
 ## 构建和运行
 
 ### 编译项目
