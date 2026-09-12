@@ -21,6 +21,10 @@ public class TableDataRpcService extends HttpDaoSupport<TableDataPO> {
         return super.queryForList(po);
     }
 
+    public List<TableDataPO> queryForListSummary(TableDataPO po) {
+        return invokeList("queryForListSummary", TableDataPO.class, po);
+    }
+
     public List<TableDataPO> queryForSearch(String text) {
         return invokeList("queryForSearch", TableDataPO.class, text);
     }

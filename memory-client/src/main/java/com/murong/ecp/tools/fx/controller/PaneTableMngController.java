@@ -53,7 +53,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Component
 public class PaneTableMngController {
@@ -124,6 +126,8 @@ public class PaneTableMngController {
     private TextField nameFilterField; // 名称输入框
     @FXML
     private Button queryButton;        // 查询按钮
+    private final AtomicInteger loadSeq = new AtomicInteger();
+    private boolean suppressLabelChange;
 
     @FXML
     public void initialize() {
@@ -131,21 +135,22 @@ public class PaneTableMngController {
         if (!ViewUtils.validateProjectConfiguration(globalProps)) {
             return; // 配置不完整，直接返回，不初始化界面
         }
-        
-        TableDataPO reqPO = new TableDataPO();
-        reqPO.setAppName(globalProps.getAppName());
-        reqPO.setProjectName(globalProps.getProjectName());
-        reqPO.setGroupName(globalProps.getGroupName());
-        List<TableDataPO> list = tableDataRpcService.queryForList(reqPO);
-        transactionList.setAll(list);
+
+        try {
+            setupTableUi();
+            loadTableDataAsync(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            ViewUtils.alertForFail("表结构页面初始化失败: " + e.getMessage());
+        }
+    }
+
+    private void setupTableUi() {
         tableTableView.setItems(transactionList);
         tableTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-        nameFilterField.clear();
-        // 初始化每行的选中状态
-        selectedList.clear();
-        for (int i = 0; i < transactionList.size(); i++) {
-            selectedList.add(new SimpleBooleanProperty(false));
+        tableTableView.setPlaceholder(new Label("正在加载..."));
+        if (nameFilterField != null) {
+            nameFilterField.clear();
         }
 
         // 全选/全不选功能
@@ -333,37 +338,18 @@ public class PaneTableMngController {
             }
         });
 
-        // 填充标签名称下拉框，增加ALL选项
-        List<String> labelNames = transactionList.stream()
-                .map(TableDataPO::getLableName)
-                .filter(name -> name != null && !name.isEmpty())
-                .distinct()
-                .toList();
-        labenameComboBox.getItems().setAll();
-        labenameComboBox.getItems().add("ALL");
-        labenameComboBox.getItems().addAll(labelNames);
-        labenameComboBox.setValue("ALL");
+        suppressLabelChange = true;
+        try {
+            labenameComboBox.getItems().setAll("ALL");
+            labenameComboBox.setValue("ALL");
+        } finally {
+            suppressLabelChange = false;
+        }
         labenameComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal == null || newVal.isEmpty() || "ALL".equals(newVal)) {
-                TableDataPO newReqPO = new TableDataPO();
-                newReqPO.setAppName(globalProps.getAppName());
-                newReqPO.setProjectName(globalProps.getProjectName());
-                newReqPO.setGroupName(globalProps.getGroupName());
-                List<TableDataPO> newList = tableDataRpcService.queryForList(newReqPO);
-                transactionList.clear();
-                transactionList.setAll(newList);
-                tableTableView.setItems(transactionList);
-            } else {
-                TableDataPO newReqPO = new TableDataPO();
-                newReqPO.setAppName(globalProps.getAppName());
-                newReqPO.setProjectName(globalProps.getProjectName());
-                newReqPO.setGroupName(globalProps.getGroupName());
-                newReqPO.setLableName(newVal);
-                List<TableDataPO> newList = tableDataRpcService.queryForList(newReqPO);
-                transactionList.clear();
-                transactionList.setAll(newList);
-                tableTableView.setItems(transactionList);
+            if (suppressLabelChange) {
+                return;
             }
+            loadTableDataAsync(false);
         });
 
         syncTabButton.setOnAction(event -> syncTable());
@@ -373,15 +359,82 @@ public class PaneTableMngController {
         compareButton.setOnAction(event -> compareTableStructure());
         dataMigrationButton.setOnAction(event -> showDataMigrationDialog());
 
-        // 绑定查询输入框和按钮
-        if (nameFilterField == null) {
-            nameFilterField = (TextField) syncTabButton.getScene().lookup(".text-field[promptText='名称']");
-        }
-        if (queryButton == null) {
-            queryButton = (Button) syncTabButton.getScene().lookup(".button[text='查询']");
-        }
         if (queryButton != null) {
             queryButton.setOnAction(event -> doQuery());
+        }
+    }
+
+    private void loadTableDataAsync(boolean refreshLabels) {
+        TableDataPO reqPO = new TableDataPO();
+        reqPO.setAppName(globalProps.getAppName());
+        reqPO.setProjectName(globalProps.getProjectName());
+        reqPO.setGroupName(globalProps.getGroupName());
+        String selectedLabel = labenameComboBox == null ? null : labenameComboBox.getValue();
+        if (selectedLabel != null && !selectedLabel.isEmpty() && !"ALL".equals(selectedLabel)) {
+            reqPO.setLableName(selectedLabel);
+        }
+        queryAndApplyAsync(() -> tableDataRpcService.queryForListSummary(reqPO), refreshLabels);
+    }
+
+    private void queryAndApplyAsync(Supplier<List<TableDataPO>> query, boolean refreshLabels) {
+        int seq = loadSeq.incrementAndGet();
+        tableTableView.setPlaceholder(new Label("正在加载..."));
+        Thread loader = new Thread(() -> {
+            try {
+                List<TableDataPO> list = query.get();
+                if (seq != loadSeq.get()) {
+                    return;
+                }
+                List<TableDataPO> result = list == null ? List.of() : list;
+                Platform.runLater(() -> applyTableData(result, refreshLabels));
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (seq != loadSeq.get()) {
+                    return;
+                }
+                Platform.runLater(() -> {
+                    tableTableView.setPlaceholder(new Label("加载失败"));
+                    ViewUtils.alertForFail("加载表结构数据失败: " + e.getMessage());
+                });
+            }
+        }, "table-list-loader");
+        loader.setDaemon(true);
+        loader.start();
+    }
+
+    private void applyTableData(List<TableDataPO> list, boolean refreshLabels) {
+        transactionList.setAll(list);
+        tableTableView.setItems(transactionList);
+        selectedList.clear();
+        for (int i = 0; i < transactionList.size(); i++) {
+            selectedList.add(new SimpleBooleanProperty(false));
+        }
+        if (selectAllCheckBox != null) {
+            selectAllCheckBox.setSelected(false);
+            selectAllCheckBox.setIndeterminate(false);
+        }
+        if (refreshLabels) {
+            fillLabelCombo(list);
+        }
+        tableTableView.setPlaceholder(new Label(list.isEmpty() ? "暂无数据" : ""));
+        tableTableView.refresh();
+    }
+
+    private void fillLabelCombo(List<TableDataPO> list) {
+        List<String> labelNames = list.stream()
+                .map(TableDataPO::getLableName)
+                .filter(name -> name != null && !name.isEmpty())
+                .distinct()
+                .toList();
+        suppressLabelChange = true;
+        try {
+            List<String> items = new ArrayList<>();
+            items.add("ALL");
+            items.addAll(labelNames);
+            labenameComboBox.getItems().setAll(items);
+            labenameComboBox.setValue("ALL");
+        } finally {
+            suppressLabelChange = false;
         }
     }
 
@@ -559,7 +612,18 @@ public class PaneTableMngController {
 
     @FXML
     private void refreshTable() {
-        initialize();
+        if (nameFilterField != null) {
+            nameFilterField.clear();
+        }
+        suppressLabelChange = true;
+        try {
+            if (labenameComboBox != null) {
+                labenameComboBox.setValue("ALL");
+            }
+        } finally {
+            suppressLabelChange = false;
+        }
+        loadTableDataAsync(true);
     }
 
 
@@ -677,25 +741,11 @@ public class PaneTableMngController {
 
     private void doQuery() {
         String name = nameFilterField != null ? nameFilterField.getText() : "";
-
-        List<TableDataPO> list = null;
         if (StringUtils.isBlank(name)) {
-            TableDataPO reqPO = new TableDataPO();
-            reqPO.setAppName(globalProps.getAppName());
-            reqPO.setProjectName(globalProps.getProjectName());
-            reqPO.setGroupName(globalProps.getGroupName());
-            list = tableDataRpcService.queryForList(reqPO);
-        }else {
-            list = tableDataRpcService.queryForSearch(name);
+            loadTableDataAsync(false);
+        } else {
+            queryAndApplyAsync(() -> tableDataRpcService.queryForSearch(name), false);
         }
-
-        transactionList.setAll(list);
-        tableTableView.setItems(transactionList);
-        selectedList.clear();
-        for (int i = 0; i < transactionList.size(); i++) {
-            selectedList.add(new SimpleBooleanProperty(false));
-        }
-        tableTableView.refresh();
     }
     
     /**
