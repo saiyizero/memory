@@ -34,6 +34,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -73,6 +74,9 @@ public class PaneKnowledgeController {
 
     @Autowired
     private SqliteBackupService sqliteBackupService;
+
+    @Value("${memory.local.datasource.file}")
+    private String localDbFile;
 
     @FXML
     void initialize() {
@@ -483,48 +487,17 @@ public class PaneKnowledgeController {
      */
     private String getCurrentDatabasePath() {
         try {
-            // 从application.properties中获取数据库路径
-            // 默认路径为项目资源目录下的database/memory_embedded.db
-            String dbPath = "/Users/haoyulin/foxi_tmp/database/memory_embedded.db";
-            
-            System.out.println("[DEBUG] 检查数据库路径: " + dbPath);
-            
-            // 检查文件是否存在
-            File dbFile = new File(dbPath);
+            if (localDbFile == null || localDbFile.isBlank()) {
+                System.out.println("[DEBUG] 未配置本地数据库路径");
+                return null;
+            }
+            File dbFile = new File(localDbFile);
+            System.out.println("[DEBUG] 检查数据库路径: " + dbFile.getAbsolutePath());
             if (dbFile.exists()) {
-                System.out.println("[DEBUG] 数据库文件存在: " + dbPath);
-                return dbPath;
-            } else {
-                System.out.println("[DEBUG] 数据库文件不存在: " + dbPath);
+                System.out.println("[DEBUG] 数据库文件存在: " + dbFile.getAbsolutePath());
+                return dbFile.getAbsolutePath();
             }
-            
-            // 如果默认路径不存在，尝试项目资源目录下的路径
-            try {
-                String resourcePath = getClass().getResource("/database/memory_embedded.db").getPath();
-                if (resourcePath != null) {
-                    System.out.println("[DEBUG] 找到资源路径: " + resourcePath);
-                    return resourcePath;
-                }
-            } catch (Exception e) {
-                System.out.println("[DEBUG] 无法获取资源路径: " + e.getMessage());
-            }
-            
-            // 尝试其他可能的路径
-            String[] possiblePaths = {
-                "memory-client/src/main/resources/database/memory_embedded.db",
-                "src/main/resources/database/memory_embedded.db",
-                "database/memory_embedded.db"
-            };
-            
-            for (String path : possiblePaths) {
-                File file = new File(path);
-                if (file.exists()) {
-                    System.out.println("[DEBUG] 找到数据库文件: " + file.getAbsolutePath());
-                    return file.getAbsolutePath();
-                }
-            }
-            
-            System.out.println("[DEBUG] 未找到数据库文件");
+            System.out.println("[DEBUG] 数据库文件不存在: " + dbFile.getAbsolutePath());
             return null;
         } catch (Exception e) {
             System.err.println("[DEBUG] 获取数据库路径时发生异常: " + e.getMessage());

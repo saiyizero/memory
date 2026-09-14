@@ -1,13 +1,16 @@
 package com.murong.ecp.tools.fx.infrastructure.config;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -28,28 +31,52 @@ import java.nio.file.StandardCopyOption;
 @Configuration
 public class MemoryConfiguration {
 
+    @Value("${memory.local.datasource.driver-class-name}")
+    private String driverClassName;
+    @Value("${memory.local.datasource.file}")
+    private String dbFilePath;
+    @Value("${memory.local.datasource.url}")
+    private String jdbcUrl;
+    @Value("${memory.local.datasource.init-resource:}")
+    private String initResource;
+
+    private final ResourceLoader resourceLoader;
+
+    public MemoryConfiguration(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+
     @Bean
     @Primary
     @Qualifier("localDataSource")
     public DataSource localDataSource() throws IOException {
         Path dbFile = resolvePersistentDatabaseFile();
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setUrl("jdbc:sqlite:" + dbFile.toAbsolutePath());
-        dataSource.setDriverClassName("org.sqlite.JDBC");
+        dataSource.setDriverClassName(driverClassName);
+        dataSource.setUrl(resolveJdbcUrl(dbFile));
         return dataSource;
     }
 
     private Path resolvePersistentDatabaseFile() throws IOException {
-        Path homeDir = Path.of(System.getProperty("user.home"), ".memory");
-        Files.createDirectories(homeDir);
-        Path dbFile = homeDir.resolve("memory_embedded.db");
-        if (!Files.exists(dbFile)) {
-            ClassPathResource resource = new ClassPathResource("database/memory_embedded.db");
+        Path dbFile = Path.of(dbFilePath).toAbsolutePath().normalize();
+        Path parent = dbFile.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        if (!Files.exists(dbFile) && StringUtils.isNotBlank(initResource)) {
+            Resource resource = resourceLoader.getResource(initResource);
             try (var inputStream = resource.getInputStream()) {
                 Files.copy(inputStream, dbFile, StandardCopyOption.REPLACE_EXISTING);
             }
         }
         return dbFile;
+    }
+
+    private String resolveJdbcUrl(Path dbFile) {
+        if (StringUtils.isNotBlank(jdbcUrl)) {
+            return jdbcUrl;
+        }
+        return "jdbc:sqlite:" + dbFile;
     }
 
     @Bean
