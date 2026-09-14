@@ -505,3 +505,23 @@ create table user_proj_setting
 alter table user_proj_setting
     owner to coretsdapi;
 
+create table role_menu
+(
+    role_code   varchar(5)  not null,
+    menu_key    varchar(64) not null,
+    menu_name   varchar(64),
+    group_key   varchar(64),
+    group_name  varchar(64),
+    sort_no     integer,
+    show_flag   varchar(5) default 'Y',
+    update_by   varchar(128),
+    update_time varchar(256),
+    primary key (role_code, menu_key)
+);
+
+alter table role_menu
+    owner to coretsdapi;
+
+create index idx_role_menu_role
+    on role_menu (role_code);
+

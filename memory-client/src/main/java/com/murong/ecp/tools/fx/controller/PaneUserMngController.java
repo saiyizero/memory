@@ -139,7 +139,7 @@ public class PaneUserMngController implements Initializable {
         });
         
         // 创建角色选项列表，显示格式为 "代码-描述"
-        ObservableList<String> roleOptions = FXCollections.observableArrayList("D-开发者", "M-管理者");
+        ObservableList<String> roleOptions = FXCollections.observableArrayList(UserRoleEnum.displayValues());
         roleColumn.setCellFactory(ComboBoxTableCell.forTableColumn(roleOptions));
         roleColumn.setEditable(true);
         
@@ -385,7 +385,10 @@ public class PaneUserMngController implements Initializable {
      */
     private void initFilters() {
         // 角色过滤器
-        roleFilterCombo.getItems().addAll("全部", "D", "M");
+        roleFilterCombo.getItems().add("全部");
+        for (UserRoleEnum role : UserRoleEnum.values()) {
+            roleFilterCombo.getItems().add(role.getCode());
+        }
         roleFilterCombo.setValue("全部");
         roleFilterCombo.setOnAction(e -> applyFilters());
         
@@ -424,9 +427,8 @@ public class PaneUserMngController implements Initializable {
         List<UserInfoPO> filteredUsers = new ArrayList<>();
         
         for (UserInfoPO user : allUsers) {
-            boolean roleMatch = "全部".equals(roleFilter) || 
-                              ("D".equals(roleFilter) && "D".equals(user.getRoles())) ||
-                              ("M".equals(roleFilter) && "M".equals(user.getRoles()));
+            boolean roleMatch = "全部".equals(roleFilter) ||
+                    (roleFilter != null && roleFilter.equals(user.getRoles()));
             
             boolean statusMatch = "全部".equals(statusFilter) ||
                                 ("A".equals(statusFilter) && "A".equals(user.getStatus())) ||
@@ -518,8 +520,8 @@ public class PaneUserMngController implements Initializable {
         
         // 角色下拉框
         ComboBox<String> roleComboBox = new ComboBox<>();
-        roleComboBox.getItems().addAll("D-开发者", "M-管理者");
-        roleComboBox.setValue("D-开发者"); // 默认选择开发者
+        roleComboBox.getItems().addAll(UserRoleEnum.displayValues());
+        roleComboBox.setValue(UserRoleEnum.DEVELOPER.getCode() + "-" + UserRoleEnum.DEVELOPER.getDesc());
         roleComboBox.setMaxWidth(Double.MAX_VALUE);
         
         // 状态下拉框

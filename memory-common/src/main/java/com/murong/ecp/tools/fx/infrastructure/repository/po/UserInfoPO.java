@@ -12,7 +12,7 @@ public class UserInfoPO {
     private String realName;       // 真实姓名
     private String email;          // 邮箱
     private String phone;          // 电话
-    private String roles;          // 角色：D-开发者，M-管理者
+    private String roles;          // 角色：D-开发者，M-管理员，C-审批者
     private String status;         // 状态：ACTIVE-激活，INACTIVE-禁用
     private String updateBy;       // 更新人
     private String updateTime;     // 更新时间

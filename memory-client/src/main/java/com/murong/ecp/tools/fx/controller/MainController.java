@@ -4,7 +4,10 @@ import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.EnvironmentService;
 import com.murong.ecp.tools.fx.domain.service.common.UserPreferenceService;
 import com.murong.ecp.tools.fx.enums.MenuEnum;
+import com.murong.ecp.tools.fx.enums.UserRoleEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.LocalSettingDao;
+import com.murong.ecp.tools.fx.infrastructure.repository.po.RoleMenuPO;
+import com.murong.ecp.tools.fx.infrastructure.rpc.RoleMenuRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.WorkspaceBootstrapVO;
 import com.murong.ecp.tools.fx.infrastructure.rpc.WorkspaceRpcService;
@@ -40,7 +43,11 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -75,6 +82,8 @@ public class MainController {
     private UserPreferenceService userPreferenceService;
     @Autowired
     private LocalSettingDao localSettingDao;
+    @Autowired
+    private RoleMenuRpcService roleMenuRpcService;
     
     // 保存主窗口的Stage引用
     private Stage mainStage;
@@ -250,19 +259,8 @@ public class MainController {
             }
         });
 
-        // 动态生成菜单
-        buildMenu(menuGroupContainer, menuGroups);
-        
-        // 尝试恢复上次选中的菜单，如果没有则默认选中"交易接口"
-        String lastSelectedMenu = userPreferenceService.getMenuSelected();
-        System.out.println("[MainController] 尝试恢复菜单选中状态: " + lastSelectedMenu);
-        if (lastSelectedMenu != null && !lastSelectedMenu.trim().isEmpty()) {
-            System.out.println("[MainController] 恢复菜单: " + lastSelectedMenu);
-            selectMenuByKey(lastSelectedMenu);
-        } else {
-            System.out.println("[MainController] 使用默认菜单: transactionApi");
-            selectMenuByKey("transactionApi");
-        }
+        // 按当前登录角色动态生成菜单
+        refreshMenuForCurrentRole();
         // 菜单收缩/展开按钮事件
         toggleMenuBtn.setOnAction(e -> toggleMenuBar());
 
@@ -493,13 +491,106 @@ public class MainController {
             divider.setPrefHeight(1);
             divider.setMaxHeight(1);
             container.getChildren().addAll(groupBtnBox, divider, subMenuBox);
-            // 默认展开"交易管理"分组
-            if ("transaction".equals(group.groupKey)) {
+            // 默认展开第一个可见分组
+            if (lastOpenSubMenu[0] == null) {
                 expandSubMenu(subMenuBox);
                 lastOpenSubMenu[0] = subMenuBox;
                 expandLabel.setText("-");
             }
         }
+    }
+
+    private void refreshMenuForCurrentRole() {
+        MenuGroup[] visibleGroups = resolveVisibleMenuGroups();
+        buildMenu(menuGroupContainer, visibleGroups);
+        selectInitialMenu(visibleGroups);
+    }
+
+    private MenuGroup[] resolveVisibleMenuGroups() {
+        Set<String> allowedKeys = loadAllowedMenuKeys();
+        if (allowedKeys == null) {
+            return menuGroups;
+        }
+        List<MenuGroup> visible = new ArrayList<>();
+        for (MenuGroup group : menuGroups) {
+            MenuItem[] children = Arrays.stream(group.children)
+                    .filter(item -> allowedKeys.contains(item.key))
+                    .toArray(MenuItem[]::new);
+            if (children.length > 0) {
+                visible.add(new MenuGroup(group.groupKey, group.groupName, group.groupIcon, children));
+            }
+        }
+        return visible.toArray(new MenuGroup[0]);
+    }
+
+    /**
+     * @return 允许的菜单 key；null 表示不限制（管理员兜底显示全部）
+     */
+    private Set<String> loadAllowedMenuKeys() {
+        String roleCode = currentRoleCode();
+        if (roleCode == null || roleCode.isBlank()) {
+            return Set.of();
+        }
+        try {
+            List<RoleMenuPO> roleMenus = roleMenuRpcService.queryByRole(roleCode);
+            if (roleMenus == null || roleMenus.isEmpty()) {
+                return UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode) ? null : Set.of();
+            }
+            Set<String> keys = new HashSet<>();
+            for (RoleMenuPO po : roleMenus) {
+                if (po != null && po.getMenuKey() != null && !po.getMenuKey().isBlank()) {
+                    keys.add(po.getMenuKey());
+                }
+            }
+            return keys;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode) ? null : Set.of();
+        }
+    }
+
+    private String currentRoleCode() {
+        if (globalPropes == null || globalPropes.getOperator() == null) {
+            return null;
+        }
+        String roles = globalPropes.getOperator().getRoles();
+        return roles == null ? null : roles.trim();
+    }
+
+    private void selectInitialMenu(MenuGroup[] visibleGroups) {
+        String lastSelectedMenu = userPreferenceService.getMenuSelected();
+        System.out.println("[MainController] 尝试恢复菜单选中状态: " + lastSelectedMenu);
+        if (lastSelectedMenu != null && !lastSelectedMenu.trim().isEmpty()
+                && containsMenuKey(visibleGroups, lastSelectedMenu)) {
+            System.out.println("[MainController] 恢复菜单: " + lastSelectedMenu);
+            selectMenuByKey(lastSelectedMenu);
+            return;
+        }
+        String firstMenuKey = firstMenuKey(visibleGroups);
+        if (firstMenuKey != null) {
+            System.out.println("[MainController] 使用角色可见的首个菜单: " + firstMenuKey);
+            selectMenuByKey(firstMenuKey);
+        }
+    }
+
+    private boolean containsMenuKey(MenuGroup[] groups, String key) {
+        for (MenuGroup group : groups) {
+            for (MenuItem item : group.children) {
+                if (key.equals(item.key)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String firstMenuKey(MenuGroup[] groups) {
+        for (MenuGroup group : groups) {
+            if (group.children != null && group.children.length > 0) {
+                return group.children[0].key;
+            }
+        }
+        return null;
     }
     // 展开动画
     private void expandSubMenu(VBox subMenuBox) {
@@ -983,6 +1074,8 @@ public class MainController {
                 mainStage.show();
                 // 刷新用户信息显示
                 setupUserInfo();
+                clearAllTabsAndMenuSelection();
+                refreshMenuForCurrentRole();
             } else {
                 // 登录失败或取消，退出应用程序
                 Platform.exit();

@@ -6,7 +6,8 @@ package com.murong.ecp.tools.fx.enums;
 public enum UserRoleEnum {
     
     DEVELOPER("D", "开发者"),
-    MANAGER("M", "管理者");
+    MANAGER("M", "管理员"),
+    APPROVER("C", "审批者");
     
     private final String code;
     private final String desc;
@@ -60,5 +61,19 @@ public enum UserRoleEnum {
             }
         }
         return null;
+    }
+
+    public static String toCodeDesc(String code) {
+        UserRoleEnum role = getByCode(code);
+        return role == null ? code : role.getCode() + "-" + role.getDesc();
+    }
+
+    public static String[] displayValues() {
+        UserRoleEnum[] values = values();
+        String[] result = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = values[i].getCode() + "-" + values[i].getDesc();
+        }
+        return result;
     }
 }
