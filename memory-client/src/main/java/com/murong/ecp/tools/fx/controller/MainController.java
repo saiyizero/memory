@@ -1,6 +1,7 @@
 package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import com.murong.ecp.tools.fx.domain.entity.MenuCatalog;
 import com.murong.ecp.tools.fx.domain.service.common.EnvironmentService;
 import com.murong.ecp.tools.fx.domain.service.common.UserPreferenceService;
 import com.murong.ecp.tools.fx.enums.MenuEnum;
@@ -113,45 +114,19 @@ public class MainController {
             this.fxmlPath = fxmlPath;
         }
     }
-    // 菜单分组与子菜单定义
-    private final MenuGroup[] menuGroups = new MenuGroup[] {
-        new MenuGroup("common", "工具管理", "remixB/global-line.png", new MenuItem[] {
-            new MenuItem("logService", "日志服务", "remixB/command-fill.png", "/fxml/pane_server_mng.fxml"),
-            new MenuItem("transactionReview", "检索记录", "remixB/command-fill.png", "/fxml/pane_transaction_review.fxml"),
-            new MenuItem("textEditor", "文本编辑", "remixB/command-fill.png", "/fxml/pane_format.fxml"),
-            new MenuItem("AiPrompt", "AI提示词", "remixB/command-fill.png", "/fxml/pane_ai_prompt.fxml"),
-            new MenuItem("terminal", "终端", "remixB/terminal-box-line.png", "/fxml/pane_terminal.fxml")
-        }),
-        new MenuGroup("collection", "集合管理", "remixB/list-radio.png", new MenuItem[] {
-            new MenuItem("enum", "枚举维护", "remixB/command-fill.png", "/fxml/pane_enum.fxml"),
-            new MenuItem("baseDict", "基础字典", "remixB/command-fill.png", "/fxml/pane_base_dict.fxml"),
-            new MenuItem("bizDict", "业务字典", "remixB/command-fill.png", "/fxml/pane_bizdict.fxml"),
-            new MenuItem("infoCode", "信息码", "remixB/command-fill.png", "/fxml/pane_infocode.fxml"),
-            new MenuItem("commonObj", "公共对象", "remixB/command-fill.png", "/fxml/pane_commonobj.fxml")
-        }),
-        new MenuGroup("transaction", "交易管理", "remixB/color-filter-ai-line.png", new MenuItem[] {
-            new MenuItem("transactionApi", "交易接口", "remixB/command-fill.png", "/fxml/pane_transaction.xml"),
-            new MenuItem("transactionTest", "测试记录", "remixB/command-fill.png", "/fxml/pane_restful_record.fxml"),
-            new MenuItem("transactionLable", "交易标签", "remixB/command-fill.png", "/fxml/pane_lable.xml")
-        }),
-        new MenuGroup("table", "库表管理", "remixB/database-2-line.png", new MenuItem[] {
-            new MenuItem("tableManager", "表结构", "remixB/command-fill.png", "/fxml/pane_table_mng.xml"),
-            new MenuItem("exesql", "SQL执行", "remixB/command-fill.png", "/fxml/pane_exesql.fxml"),
-            new MenuItem("exeRecord", "执行记录", "remixB/command-fill.png", "/fxml/pane_exe_record.fxml"),
-            new MenuItem("datasourceManager", "数据源", "remixB/command-fill.png", "/fxml/pane_db_mangr.fxml"),
-            new MenuItem("tableDiff", "结构对比", "remixB/command-fill.png", "/fxml/pane_table_diff.fxml")
-        }),
-        new MenuGroup("project", "项目管理", "remixB/settings-5-line.png", new MenuItem[] {
-            new MenuItem("projectStructure", "项目结构", "remixB/command-fill.png", "/fxml/pane_structure.fxml"),
-            new MenuItem("projectGroup", "项目组", "remixB/command-fill.png", "/fxml/pane_project_group.fxml"),
-            new MenuItem("userManagement", "用户管理", "remixB/command-fill.png", "/fxml/pane_user_management.fxml"),
-            new MenuItem("generateTrans", "交易生成", "remixB/command-fill.png", "/fxml/pane_generate_trans.fxml")
-        }),
-        new MenuGroup("about", "基础配置", "remixB/settings-5-line.png", new MenuItem[] {
-            new MenuItem("basicConfig", "基础配置", "remixB/command-fill.png", "/fxml/pane_basic_config.fxml"),
-            new MenuItem("knowledge", "知识库", "remixB/command-fill.png", "/fxml/pane_knowledge.fxml")
-        })
-    };
+    // 菜单分组与子菜单定义（与菜单管理共用 MenuCatalog）
+    private final MenuGroup[] menuGroups = createAllMenuGroups();
+
+    private static MenuGroup[] createAllMenuGroups() {
+        List<MenuGroup> groups = new ArrayList<>();
+        for (MenuCatalog.Group group : MenuCatalog.groups()) {
+            MenuItem[] children = group.items().stream()
+                    .map(item -> new MenuItem(item.key(), item.text(), item.icon(), item.fxmlPath()))
+                    .toArray(MenuItem[]::new);
+            groups.add(new MenuGroup(group.groupKey(), group.groupName(), group.groupIcon(), children));
+        }
+        return groups.toArray(new MenuGroup[0]);
+    }
     private Button selectedBtn = null;
 
     // 支持的图标后缀
@@ -508,13 +483,17 @@ public class MainController {
 
     private MenuGroup[] resolveVisibleMenuGroups() {
         Set<String> allowedKeys = loadAllowedMenuKeys();
-        if (allowedKeys == null) {
-            return menuGroups;
-        }
+        boolean manager = UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(currentRoleCode());
         List<MenuGroup> visible = new ArrayList<>();
         for (MenuGroup group : menuGroups) {
             MenuItem[] children = Arrays.stream(group.children)
-                    .filter(item -> allowedKeys.contains(item.key))
+                    .filter(item -> {
+                        MenuCatalog.Item catalogItem = MenuCatalog.findItem(item.key);
+                        if (catalogItem != null && catalogItem.adminOnly() && !manager) {
+                            return false;
+                        }
+                        return allowedKeys == null || allowedKeys.contains(item.key);
+                    })
                     .toArray(MenuItem[]::new);
             if (children.length > 0) {
                 visible.add(new MenuGroup(group.groupKey, group.groupName, group.groupIcon, children));
@@ -531,10 +510,14 @@ public class MainController {
         if (roleCode == null || roleCode.isBlank()) {
             return Set.of();
         }
+        boolean manager = UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode);
         try {
             List<RoleMenuPO> roleMenus = roleMenuRpcService.queryByRole(roleCode);
             if (roleMenus == null || roleMenus.isEmpty()) {
-                return UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode) ? null : Set.of();
+                if (manager) {
+                    return null;
+                }
+                return Set.of();
             }
             Set<String> keys = new HashSet<>();
             for (RoleMenuPO po : roleMenus) {
@@ -542,10 +525,15 @@ public class MainController {
                     keys.add(po.getMenuKey());
                 }
             }
+            if (manager) {
+                keys.add(MenuCatalog.MENU_MANAGEMENT_KEY);
+            } else {
+                keys.remove(MenuCatalog.MENU_MANAGEMENT_KEY);
+            }
             return keys;
         } catch (Exception e) {
             e.printStackTrace();
-            return UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode) ? null : Set.of();
+            return manager ? null : Set.of();
         }
     }
 

@@ -15,4 +15,12 @@ public class RoleMenuRpcService extends HttpDaoSupport<RoleMenuPO> {
     public List<RoleMenuPO> queryByRole(String roleCode) {
         return invokeList("queryByRole", RoleMenuPO.class, roleCode);
     }
+
+    public List<RoleMenuPO> queryAllByRole(String roleCode) {
+        return invokeList("queryAllByRole", RoleMenuPO.class, roleCode);
+    }
+
+    public void replaceByRole(String roleCode, List<RoleMenuPO> menus) {
+        invokeVoid("replaceByRole", roleCode, menus);
+    }
 }

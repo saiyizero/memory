@@ -107,7 +107,8 @@ public class GenericDaoApplicService {
             Object daoBean = applicationContext.getBean(daoClass);
             JsonNode argsNode = request.getMethodArgs();
             int argCount = (argsNode == null || argsNode.isNull() || !argsNode.isArray()) ? 0 : argsNode.size();
-            Method method = findMethod(daoBean.getClass(), request.getMethodName(), argCount);
+            // 必须从原始 DAO 类取方法，CGLIB 代理会丢掉 List<RoleMenuPO> 这类泛型，导致反序列化成 LinkedHashMap
+            Method method = findMethod(daoClass, request.getMethodName(), argCount);
             method.setAccessible(true);
             Object result = method.invoke(daoBean, convertArgs(method, argsNode));
             return RpcDaoResponse.ok(objectMapper.valueToTree(result));
