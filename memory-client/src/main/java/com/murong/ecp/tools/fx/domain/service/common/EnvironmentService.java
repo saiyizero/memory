@@ -4,7 +4,7 @@ import com.murong.ecp.tools.fx.domain.entity.DbConfig;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
-import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectSettingRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.DbConnectionPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectFolderPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
@@ -17,17 +17,17 @@ import java.util.List;
 @Service
 public class EnvironmentService {
     @Autowired
-    private ProjectSettingRpcService projectSettingRpcService;
-    @Autowired
     private ProjectFolderRpcService projectFolderRpcService;
     @Autowired
     private DbConnectionRpcService dbConnectionRpcService;
+    @Autowired
+    private UserProjSettingRpcService userProjSettingRpcService;
 
     /**
-     * 切换当前激活项目，保证cur_flag唯一
+     * 切换当前用户激活项目，保证该用户的 cur_flag 唯一
      */
     public void switchCurrentEnv(String groupName, String projectName) {
-        projectSettingRpcService.switchProject(groupName, projectName);
+        userProjSettingRpcService.switchProject(groupName, projectName);
     }
 
     public void rebuildGlobalPropes(GlobalProperties globalPropes, ProjectSettingPO projectEnv){

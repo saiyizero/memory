@@ -73,4 +73,8 @@ public class UserProjSettingRpcService extends HttpDaoSupport<UserProjSettingPO>
     public void batchDeleteByUser(String userId, String username) {
         invokeVoid("batchDeleteByUser", userId, username);
     }
+
+    public void switchProject(String groupName, String projectName) {
+        invokeVoid("switchProject", groupName, projectName);
+    }
 }

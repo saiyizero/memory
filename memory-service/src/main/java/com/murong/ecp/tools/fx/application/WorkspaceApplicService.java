@@ -31,7 +31,7 @@ public class WorkspaceApplicService {
 
     @PostMapping("/bootstrap")
     public CrResult<WorkspaceBootstrapVO> bootstrap() {
-        List<UserProjGroupPO> groups = userProjGroupDao.queryForList(new UserProjGroupPO());
+        List<UserProjGroupPO> groups = userProjGroupDao.queryMine();
         if (groups == null) {
             groups = new ArrayList<>();
         }
@@ -75,10 +75,7 @@ public class WorkspaceApplicService {
         if (StringUtils.isBlank(groupName)) {
             return new ArrayList<>();
         }
-        UserProjSettingPO query = new UserProjSettingPO();
-        query.setGroupName(groupName);
-        query.setShowFlag("Y");
-        List<UserProjSettingPO> projects = userProjSettingDao.queryForList(query);
+        List<UserProjSettingPO> projects = userProjSettingDao.queryMineByGroup(groupName);
         return projects == null ? new ArrayList<>() : projects;
     }
 }

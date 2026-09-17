@@ -81,7 +81,7 @@ public class GlobalProperties {
 
     public Operator getOperator() {
         var ctx = com.murong.ecp.tools.fx.infrastructure.rpc.ServiceRequestContext.get();
-        if (ctx != null && ctx.getUsername() != null) {
+        if (ctx != null && (ctx.getUsername() != null || ctx.getUserId() != null)) {
             Operator requestOperator = new Operator();
             requestOperator.setUserId(ctx.getUserId());
             requestOperator.setUsername(ctx.getUsername());

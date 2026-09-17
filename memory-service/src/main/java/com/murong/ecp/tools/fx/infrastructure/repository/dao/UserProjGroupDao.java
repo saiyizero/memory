@@ -20,7 +20,8 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
         com.murong.ecp.tools.fx.domain.entity.GlobalProperties gp =
                 com.murong.ecp.tools.fx.infrastructure.utils.MrSpringContextHolder.getBean(
                         com.murong.ecp.tools.fx.domain.entity.GlobalProperties.class);
-        if (gp != null && gp.getOperator() != null && gp.getOperator().getUsername() != null) {
+        if (gp != null && gp.getOperator() != null
+                && (gp.getOperator().getUserId() != null || gp.getOperator().getUsername() != null)) {
             UserInfoPO po = new UserInfoPO();
             po.setUserId(gp.getOperator().getUserId());
             po.setUsername(gp.getOperator().getUsername());
@@ -30,13 +31,16 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
     }
 
     public UserProjGroupPO queryCurGroup() {
-        UserInfoPO currentUser = getCurrentUser();
-        if (currentUser == null) {
+        List<UserProjGroupPO> groups = queryMine();
+        if (groups == null || groups.isEmpty()) {
             return null;
         }
-        String sql = "select * from user_proj_group where cur_flag='Y' and user_id='"+
-                currentUser.getUserId()+"' and username='"+currentUser.getUsername()+"'";
-        return super.queryOneBySql(sql);
+        for (UserProjGroupPO group : groups) {
+            if (group != null && "Y".equalsIgnoreCase(group.getCurFlag())) {
+                return group;
+            }
+        }
+        return groups.get(0);
     }
 
     public UserProjGroupPO queryCurGroup(LocalSettingPO localSettingPO) {
@@ -49,12 +53,37 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
         if (currentUser == null) {
             return;
         }
-        String sql = "update user_proj_group set cur_flag='N' where user_id='"+
-        currentUser.getUserId()+"' and username='"+currentUser.getUsername()+"'";
-        super.updateBySql(sql);
-        String updateSql = "update user_proj_group set cur_flag='Y' where group_name='"+groupName+"' and user_id='"+
-                currentUser.getUserId()+"' and username='"+currentUser.getUsername()+"'";
-        super.updateBySql(updateSql);
+        if (!isBlank(currentUser.getUserId())) {
+            super.updateBySql("update user_proj_group set cur_flag='N' where user_id=?", currentUser.getUserId());
+            super.updateBySql("update user_proj_group set cur_flag='Y' where group_name=? and user_id=?",
+                    groupName, currentUser.getUserId());
+        } else if (!isBlank(currentUser.getUsername())) {
+            super.updateBySql("update user_proj_group set cur_flag='N' where username=?", currentUser.getUsername());
+            super.updateBySql("update user_proj_group set cur_flag='Y' where group_name=? and username=?",
+                    groupName, currentUser.getUsername());
+        }
+    }
+
+    /**
+     * 查询当前登录用户可访问的全部项目组。userId / username 任一匹配即可，避免两个条件同时 AND 导致查空。
+     */
+    public List<UserProjGroupPO> queryMine() {
+        UserInfoPO currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return new java.util.ArrayList<>();
+        }
+        if (!isBlank(currentUser.getUserId()) && !isBlank(currentUser.getUsername())) {
+            String sql = "select * from user_proj_group where user_id = ? or username = ? order by group_name";
+            return distinctGroups(super.queryListBySql(sql, UserProjGroupPO.class,
+                    currentUser.getUserId(), currentUser.getUsername()));
+        }
+        if (!isBlank(currentUser.getUserId())) {
+            return queryByUserId(currentUser.getUserId());
+        }
+        if (!isBlank(currentUser.getUsername())) {
+            return queryByUsername(currentUser.getUsername());
+        }
+        return new java.util.ArrayList<>();
     }
 
     /**
@@ -164,8 +193,25 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
         if (currentUser == null) {
             return;
         }
-        po.setUserId(currentUser.getUserId());
-        po.setUsername(currentUser.getUsername());
+        if (!isBlank(currentUser.getUserId())) {
+            po.setUserId(currentUser.getUserId());
+        } else {
+            po.setUsername(currentUser.getUsername());
+        }
+    }
+
+    private List<UserProjGroupPO> distinctGroups(List<UserProjGroupPO> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return groups == null ? new java.util.ArrayList<>() : groups;
+        }
+        java.util.Map<String, UserProjGroupPO> unique = new java.util.LinkedHashMap<>();
+        for (UserProjGroupPO group : groups) {
+            if (group == null || isBlank(group.getGroupName())) {
+                continue;
+            }
+            unique.putIfAbsent(group.getGroupName(), group);
+        }
+        return new java.util.ArrayList<>(unique.values());
     }
 
     private boolean isBlank(String value) {

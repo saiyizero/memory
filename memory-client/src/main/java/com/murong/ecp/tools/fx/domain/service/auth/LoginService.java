@@ -44,6 +44,21 @@ public class LoginService {
     public void absGlobalPropes() {
         UserProjGroupRpcService userProjGroupRpcService = applicationContext.getBean(UserProjGroupRpcService.class);
         UserProjGroupPO userProjGrp = userProjGroupRpcService.queryCurGroup();
+        if (userProjGrp == null && globalProperties.getOperator() != null) {
+            List<UserProjGroupPO> groups = null;
+            String userId = globalProperties.getOperator().getUserId();
+            String username = globalProperties.getOperator().getUsername();
+            if (StringUtils.isNotBlank(userId)) {
+                groups = userProjGroupRpcService.queryByUserId(userId);
+            }
+            if ((groups == null || groups.isEmpty()) && StringUtils.isNotBlank(username)) {
+                groups = userProjGroupRpcService.queryByUsername(username);
+            }
+            if (groups != null && !groups.isEmpty()) {
+                userProjGrp = groups.get(0);
+                userProjGroupRpcService.switchGroup(userProjGrp.getGroupName());
+            }
+        }
         if(userProjGrp!=null){
             globalProperties.setGroupName(userProjGrp.getGroupName());
             UserProjSettingRpcService userProjSettingRpcService = applicationContext.getBean(UserProjSettingRpcService.class);

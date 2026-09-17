@@ -68,6 +68,7 @@ public class MainController {
     
     // 防止刷新时触发项目切换的标志
     private boolean isRefreshingProjectComboBox = false;
+    private boolean isReloadingWorkspace = false;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -150,85 +151,51 @@ public class MainController {
         
         // LOGO图片
         logoImage.setImage(new Image(getClass().getResourceAsStream("/image/logo.png")));
-        WorkspaceBootstrapVO workspace = workspaceRpcService.bootstrap();
-        List<UserProjGroupPO> groupLst = workspace.getGroups() == null ? List.of() : workspace.getGroups();
-        envComboBox.getItems().clear();
-        envComboBox.getItems().addAll(groupLst.stream().map(UserProjGroupPO::getGroupName).collect(Collectors.toList()));
-        if (workspace.getCurrentGroupName() != null && envComboBox.getItems().contains(workspace.getCurrentGroupName())) {
-            envComboBox.getSelectionModel().select(workspace.getCurrentGroupName());
-        } else if (!envComboBox.getItems().isEmpty()) {
-            envComboBox.getSelectionModel().selectFirst();
-        }
-
-        List<UserProjSettingPO> projectLst = workspace.getProjects() == null ? List.of() : workspace.getProjects();
-        dsComboBox.getItems().clear();
-        dsComboBox.getItems().addAll(projectLst.stream().map(UserProjSettingPO::getProjectName).collect(Collectors.toList()));
-        int defaultEnvIdx = 0;
-        for (int i = 0; i < projectLst.size(); i++) {
-            if ("Y".equalsIgnoreCase(projectLst.get(i).getCurFlag())) {
-                defaultEnvIdx = i;
-                break;
-            }
-        }
-        if (!dsComboBox.getItems().isEmpty()) {
-            dsComboBox.getSelectionModel().select(defaultEnvIdx);
-        }
+        reloadWorkspaceSelectors();
 
         // 项目群下拉切换，刷新项目名称下拉
         envComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                WorkspaceBootstrapVO switched = workspaceRpcService.switchGroup(newVal);
-                List<UserProjSettingPO> projectEnvLst = switched.getProjects();
+            if (isReloadingWorkspace || newVal == null) {
+                return;
+            }
+            WorkspaceBootstrapVO switched = workspaceRpcService.switchGroup(newVal);
+            List<UserProjSettingPO> projectEnvLst = switched.getProjects();
 
+            isRefreshingProjectComboBox = true;
+            try {
                 dsComboBox.getItems().clear();
                 if (projectEnvLst != null) {
                     dsComboBox.getItems().addAll(projectEnvLst.stream().map(UserProjSettingPO::getProjectName).collect(Collectors.toList()));
-                    dsComboBox.getSelectionModel().selectFirst();
-                    // 切换group时，默认选第一个project并激活
-                    String firstProject = dsComboBox.getSelectionModel().getSelectedItem();
-                    if (firstProject != null) {
-                        environmentService.switchCurrentEnv(newVal, firstProject);
+                    int defaultIdx = 0;
+                    for (int i = 0; i < projectEnvLst.size(); i++) {
+                        if ("Y".equalsIgnoreCase(projectEnvLst.get(i).getCurFlag())) {
+                            defaultIdx = i;
+                            break;
+                        }
+                    }
+                    if (!dsComboBox.getItems().isEmpty()) {
+                        dsComboBox.getSelectionModel().select(defaultIdx);
                     }
                 }
+            } finally {
+                isRefreshingProjectComboBox = false;
+            }
+            String selectedProject = dsComboBox.getSelectionModel().getSelectedItem();
+            if (selectedProject != null) {
+                applySelectedProject(newVal, selectedProject, false);
+                environmentService.switchCurrentEnv(newVal, selectedProject);
             }
         });
 
         // 项目名称下拉切换，激活对应记录
         dsComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            // 如果是刷新操作，跳过项目切换逻辑
-            if (isRefreshingProjectComboBox) {
+            if (isRefreshingProjectComboBox || isReloadingWorkspace) {
                 return;
             }
-            
             String group = envComboBox.getSelectionModel().getSelectedItem();
             if (group != null && newVal != null) {
-                // 查询新项目的 ProjectEnvPO
-                UserProjSettingPO query = new UserProjSettingPO();
-                query.setGroupName(group);
-                query.setProjectName(newVal);
-                UserProjSettingPO po = userProjSettingRpcService.queryOne(query);
-                if (po != null) {
-                    // 转换为ProjectSettingPO以兼容rebuildGlobalPropes方法
-                    ProjectSettingPO convertedProjectSetting = new ProjectSettingPO();
-                    convertedProjectSetting.setGroupName(po.getGroupName());
-                    convertedProjectSetting.setProjectName(po.getProjectName());
-                    convertedProjectSetting.setProjectType(po.getProjectType());
-                    convertedProjectSetting.setProjectDesc(po.getProjectDesc());
-                    convertedProjectSetting.setAppName(po.getAppName());
-                    convertedProjectSetting.setAppPort(po.getAppPort());
-                    convertedProjectSetting.setSchemaNm(po.getSchemaNm());
-                    convertedProjectSetting.setBasePath(po.getBasePath());
-                    convertedProjectSetting.setPropPath(po.getPropPath());
-                    convertedProjectSetting.setEnumPath(po.getEnumPath());
-                    convertedProjectSetting.setMsgcdPath(po.getMsgcdPath());
-                    convertedProjectSetting.setCurFlag(po.getCurFlag());
-                    convertedProjectSetting.setUpdateBy(po.getUpdateBy());
-                    convertedProjectSetting.setUpdateTime(po.getUpdateTime());
-                    convertedProjectSetting.setShowFlag(po.getShowFlag());
-                    environmentService.rebuildGlobalPropes(globalPropes, convertedProjectSetting);
-                }
+                applySelectedProject(group, newVal, true);
                 environmentService.switchCurrentEnv(group, newVal);
-                // 项目切换成功后，关闭所有标签页并清除菜单选中状态
                 clearAllTabsAndMenuSelection();
                 ViewUtils.alertForSucess("项目切换成功！");
             }
@@ -947,6 +914,94 @@ public class MainController {
     }
     
     /**
+     * 按当前登录用户重新加载顶部项目群/项目下拉框。
+     */
+    public void reloadWorkspaceSelectors() {
+        isReloadingWorkspace = true;
+        isRefreshingProjectComboBox = true;
+        try {
+            WorkspaceBootstrapVO workspace = workspaceRpcService.bootstrap();
+            List<UserProjGroupPO> groupLst = workspace.getGroups() == null ? List.of() : workspace.getGroups();
+            envComboBox.getItems().clear();
+            envComboBox.getItems().addAll(groupLst.stream()
+                    .map(UserProjGroupPO::getGroupName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toList()));
+            if (workspace.getCurrentGroupName() != null && envComboBox.getItems().contains(workspace.getCurrentGroupName())) {
+                envComboBox.getSelectionModel().select(workspace.getCurrentGroupName());
+            } else if (!envComboBox.getItems().isEmpty()) {
+                envComboBox.getSelectionModel().selectFirst();
+            } else {
+                envComboBox.getSelectionModel().clearSelection();
+            }
+
+            List<UserProjSettingPO> projectLst = workspace.getProjects() == null ? List.of() : workspace.getProjects();
+            dsComboBox.getItems().clear();
+            dsComboBox.getItems().addAll(projectLst.stream()
+                    .map(UserProjSettingPO::getProjectName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toList()));
+            int defaultEnvIdx = 0;
+            for (int i = 0; i < projectLst.size(); i++) {
+                if ("Y".equalsIgnoreCase(projectLst.get(i).getCurFlag())) {
+                    defaultEnvIdx = i;
+                    break;
+                }
+            }
+            if (!dsComboBox.getItems().isEmpty()) {
+                dsComboBox.getSelectionModel().select(defaultEnvIdx);
+            } else {
+                dsComboBox.getSelectionModel().clearSelection();
+            }
+
+            String group = envComboBox.getValue();
+            String project = dsComboBox.getValue();
+            if (group != null && project != null) {
+                applySelectedProject(group, project, false);
+            }
+        } finally {
+            isRefreshingProjectComboBox = false;
+            isReloadingWorkspace = false;
+        }
+    }
+
+    private void applySelectedProject(String group, String projectName, boolean queryIfMissing) {
+        UserProjSettingPO query = new UserProjSettingPO();
+        query.setGroupName(group);
+        query.setProjectName(projectName);
+        if (globalPropes.getOperator() != null) {
+            query.setUserId(globalPropes.getOperator().getUserId());
+            if (query.getUserId() == null || query.getUserId().isBlank()) {
+                query.setUsername(globalPropes.getOperator().getUsername());
+            }
+        }
+        UserProjSettingPO po = userProjSettingRpcService.queryOne(query);
+        if (po == null && queryIfMissing) {
+            return;
+        }
+        if (po == null) {
+            return;
+        }
+        ProjectSettingPO convertedProjectSetting = new ProjectSettingPO();
+        convertedProjectSetting.setGroupName(po.getGroupName());
+        convertedProjectSetting.setProjectName(po.getProjectName());
+        convertedProjectSetting.setProjectType(po.getProjectType());
+        convertedProjectSetting.setProjectDesc(po.getProjectDesc());
+        convertedProjectSetting.setAppName(po.getAppName());
+        convertedProjectSetting.setAppPort(po.getAppPort());
+        convertedProjectSetting.setSchemaNm(po.getSchemaNm());
+        convertedProjectSetting.setBasePath(po.getBasePath());
+        convertedProjectSetting.setPropPath(po.getPropPath());
+        convertedProjectSetting.setEnumPath(po.getEnumPath());
+        convertedProjectSetting.setMsgcdPath(po.getMsgcdPath());
+        convertedProjectSetting.setCurFlag(po.getCurFlag());
+        convertedProjectSetting.setUpdateBy(po.getUpdateBy());
+        convertedProjectSetting.setUpdateTime(po.getUpdateTime());
+        convertedProjectSetting.setShowFlag(po.getShowFlag());
+        environmentService.rebuildGlobalPropes(globalPropes, convertedProjectSetting);
+    }
+
+    /**
      * 刷新项目下拉列表
      */
     public void refreshProjectComboBox() {
@@ -1058,12 +1113,11 @@ public class MainController {
             boolean loginSuccess = loginDialog.showLoginDialog(mainStage);
             
             if (loginSuccess) {
-                // 登录成功，重新显示主窗口
                 mainStage.show();
-                // 刷新用户信息显示
                 setupUserInfo();
                 clearAllTabsAndMenuSelection();
                 refreshMenuForCurrentRole();
+                reloadWorkspaceSelectors();
             } else {
                 // 登录失败或取消，退出应用程序
                 Platform.exit();

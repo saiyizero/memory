@@ -20,6 +20,9 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    private LoginService loginService;
+
     @Override
     public void onApplicationEvent(StageReadyEvent event) {
         long stageInitStartTime = System.currentTimeMillis();
@@ -77,7 +80,6 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             NativeSplashScreen.updateStatus("检查登录状态...");
             
             // 检查是否有有效的登录信息
-            LoginService loginService = applicationContext.getBean(LoginService.class);
             if (!loginService.requiresLogin()) {
                 System.err.println("[界面] 登录状态检查失败，无法显示主界面");
                 NativeSplashScreen.updateStatus("登录状态检查失败");

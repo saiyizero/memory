@@ -21,7 +21,8 @@ public class UserProjSettingDao extends DaoSupport<UserProjSettingPO> {
         com.murong.ecp.tools.fx.domain.entity.GlobalProperties gp =
                 com.murong.ecp.tools.fx.infrastructure.utils.MrSpringContextHolder.getBean(
                         com.murong.ecp.tools.fx.domain.entity.GlobalProperties.class);
-        if (gp != null && gp.getOperator() != null && gp.getOperator().getUsername() != null) {
+        if (gp != null && gp.getOperator() != null
+                && (gp.getOperator().getUserId() != null || gp.getOperator().getUsername() != null)) {
             UserInfoPO po = new UserInfoPO();
             po.setUserId(gp.getOperator().getUserId());
             po.setUsername(gp.getOperator().getUsername());
@@ -124,15 +125,16 @@ public class UserProjSettingDao extends DaoSupport<UserProjSettingPO> {
     }
 
     public UserProjSettingPO queryCurProject(String groupName){
-        UserProjSettingPO userProjSetting = new UserProjSettingPO();
-        userProjSetting.setGroupName(groupName);
-        userProjSetting.setCurFlag("Y");
-        UserInfoPO currentUser = getCurrentUser();
-        if (currentUser != null) {
-            userProjSetting.setUserId(currentUser.getUserId());
-            userProjSetting.setUsername(currentUser.getUsername());
+        List<UserProjSettingPO> projects = queryMineByGroup(groupName);
+        if (projects == null || projects.isEmpty()) {
+            return null;
         }
-        return super.queryOne(userProjSetting);
+        for (UserProjSettingPO project : projects) {
+            if (project != null && "Y".equalsIgnoreCase(project.getCurFlag())) {
+                return project;
+            }
+        }
+        return projects.get(0);
     }
 
     public UserProjSettingPO queryCurProject(String groupName, LocalSettingPO localSettingPO){
@@ -211,8 +213,71 @@ public class UserProjSettingDao extends DaoSupport<UserProjSettingPO> {
         if (currentUser == null) {
             return;
         }
-        po.setUserId(currentUser.getUserId());
-        po.setUsername(currentUser.getUsername());
+        if (!isBlank(currentUser.getUserId())) {
+            po.setUserId(currentUser.getUserId());
+        } else {
+            po.setUsername(currentUser.getUsername());
+        }
+    }
+
+    /**
+     * 查询当前用户在指定项目组下可显示的项目。userId / username 任一匹配即可。
+     */
+    public List<UserProjSettingPO> queryMineByGroup(String groupName) {
+        UserInfoPO currentUser = getCurrentUser();
+        if (currentUser == null || isBlank(groupName)) {
+            return new java.util.ArrayList<>();
+        }
+        if (!isBlank(currentUser.getUserId()) && !isBlank(currentUser.getUsername())) {
+            String sql = "select * from user_proj_setting where group_name = ? and (show_flag = 'Y' or show_flag is null) "
+                    + "and (user_id = ? or username = ?) order by update_time desc";
+            return distinctProjects(super.queryListBySql(sql, UserProjSettingPO.class,
+                    groupName, currentUser.getUserId(), currentUser.getUsername()));
+        }
+        UserProjSettingPO queryPo = new UserProjSettingPO();
+        queryPo.setGroupName(groupName);
+        if (!isBlank(currentUser.getUserId())) {
+            queryPo.setUserId(currentUser.getUserId());
+        } else {
+            queryPo.setUsername(currentUser.getUsername());
+        }
+        return super.queryForList(queryPo, "update_time desc");
+    }
+
+    /**
+     * 切换当前用户在该项目组下的当前项目。
+     */
+    public void switchProject(String groupName, String projectName) {
+        UserInfoPO currentUser = getCurrentUser();
+        if (currentUser == null || isBlank(groupName) || isBlank(projectName)) {
+            return;
+        }
+        if (!isBlank(currentUser.getUserId())) {
+            super.updateBySql("update user_proj_setting set cur_flag='N' where group_name=? and user_id=?",
+                    groupName, currentUser.getUserId());
+            super.updateBySql("update user_proj_setting set cur_flag='Y' where group_name=? and project_name=? and user_id=?",
+                    groupName, projectName, currentUser.getUserId());
+        } else if (!isBlank(currentUser.getUsername())) {
+            super.updateBySql("update user_proj_setting set cur_flag='N' where group_name=? and username=?",
+                    groupName, currentUser.getUsername());
+            super.updateBySql("update user_proj_setting set cur_flag='Y' where group_name=? and project_name=? and username=?",
+                    groupName, projectName, currentUser.getUsername());
+        }
+    }
+
+    private List<UserProjSettingPO> distinctProjects(List<UserProjSettingPO> projects) {
+        if (projects == null || projects.isEmpty()) {
+            return projects == null ? new java.util.ArrayList<>() : projects;
+        }
+        java.util.Map<String, UserProjSettingPO> unique = new java.util.LinkedHashMap<>();
+        for (UserProjSettingPO project : projects) {
+            if (project == null) {
+                continue;
+            }
+            String key = String.valueOf(project.getGroupName()) + "|" + project.getProjectName() + "|" + project.getAppName();
+            unique.putIfAbsent(key, project);
+        }
+        return new java.util.ArrayList<>(unique.values());
     }
 
     private boolean isBlank(String value) {
