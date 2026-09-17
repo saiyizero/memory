@@ -1,6 +1,7 @@
 package com.murong.ecp.tools.fx.controller;
 
 import com.murong.ecp.tools.fx.domain.service.common.ProjectGroupService;
+import com.murong.ecp.tools.fx.enums.ProjectTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectGroupPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
@@ -9,16 +10,21 @@ import com.murong.ecp.tools.fx.infrastructure.view.ToggleSwitch;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Callback;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,8 +117,8 @@ public class PaneProjectGroupController implements Initializable {
         projectNameColumn.setCellValueFactory(data -> 
             new javafx.beans.property.SimpleStringProperty(data.getValue().getProjectName()));
         
-        projectTypeColumn.setCellValueFactory(data -> 
-            new javafx.beans.property.SimpleStringProperty(data.getValue().getProjectType()));
+        projectTypeColumn.setCellValueFactory(data ->
+            new javafx.beans.property.SimpleStringProperty(ProjectTypeEnum.toCodeDesc(data.getValue().getProjectType())));
         projectTypeColumn.setCellFactory(createCenteredCellFactory());
         
         appNameColumn.setCellValueFactory(data -> 
@@ -328,7 +334,7 @@ public class PaneProjectGroupController implements Initializable {
                 editBtn.setOnMouseReleased(e -> editBtn.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 8;"));
                 editBtn.setOnAction(e -> {
                     ProjectSettingPO setting = getTableView().getItems().get(getIndex());
-                    showEditDialog(setting);
+                    showProjectDialog(setting, false);
                 });
                 
                 // 设置删除按钮样式 - 使用SVG图标样式
@@ -378,90 +384,185 @@ public class PaneProjectGroupController implements Initializable {
             if (event.getClickCount() == 2) {
                 ProjectSettingPO selectedItem = projectSettingsTable.getSelectionModel().getSelectedItem();
                 if (selectedItem != null) {
-                    showEditDialog(selectedItem);
+                    showProjectDialog(selectedItem, false);
                 }
             }
         });
     }
 
     /**
-     * 显示编辑对话框
+     * 显示新增/编辑项目对话框
      */
-    private void showEditDialog(ProjectSettingPO setting) {
+    private void showProjectDialog(ProjectSettingPO setting, boolean isNew) {
         Dialog<ProjectSettingPO> dialog = new Dialog<>();
-        dialog.setTitle("编辑项目设置");
-        dialog.setHeaderText("编辑项目: " + setting.getProjectName());
+        dialog.setTitle(isNew ? "添加新项目" : "编辑项目设置");
+        dialog.setHeaderText(isNew ? "请填写项目信息" : "编辑项目: " + setting.getProjectName());
         dialog.setResizable(true);
+        initDialogOwner(dialog);
 
-        // 设置按钮
         ButtonType saveButtonType = new ButtonType("保存", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
-        // 创建表单
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+        grid.setPadding(new Insets(20, 20, 10, 10));
 
-        // 创建输入字段
-        TextField projectNameField = new TextField(setting.getProjectName());
-        TextField projectTypeField = new TextField(setting.getProjectType());
-        TextField appNameField = new TextField(setting.getAppName());
-        TextField appPortField = new TextField(setting.getAppPort());
-        TextField schemaField = new TextField(setting.getSchemaNm());
-        TextField basePathField = new TextField(setting.getBasePath());
-        TextArea projectDescArea = new TextArea(setting.getProjectDesc());
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(90);
+        labelColumn.setPrefWidth(100);
+        ColumnConstraints inputColumn = new ColumnConstraints();
+        inputColumn.setMinWidth(260);
+        inputColumn.setPrefWidth(320);
+        inputColumn.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(labelColumn, inputColumn);
+
+        TextField projectNameField = new TextField(StringUtils.defaultString(setting.getProjectName()));
+        projectNameField.setPromptText("请输入项目名称");
+        projectNameField.setMaxWidth(Double.MAX_VALUE);
+        if (!isNew) {
+            projectNameField.setDisable(true);
+            projectNameField.setStyle("-fx-opacity: 1; -fx-background-color: #f0f0f0;");
+        }
+
+        ComboBox<String> projectTypeCombo = createProjectTypeCombo(setting.getProjectType(), isNew);
+        TextField appNameField = new TextField(StringUtils.defaultString(setting.getAppName()));
+        appNameField.setPromptText("请输入应用名称");
+        appNameField.setMaxWidth(Double.MAX_VALUE);
+        TextField appPortField = new TextField(StringUtils.defaultString(setting.getAppPort()));
+        appPortField.setMaxWidth(Double.MAX_VALUE);
+        TextField schemaField = new TextField(StringUtils.defaultString(setting.getSchemaNm()));
+        schemaField.setMaxWidth(Double.MAX_VALUE);
+        TextField basePathField = new TextField(StringUtils.defaultString(setting.getBasePath()));
+        basePathField.setMaxWidth(Double.MAX_VALUE);
+        TextArea projectDescArea = new TextArea(StringUtils.defaultString(setting.getProjectDesc()));
         projectDescArea.setPrefRowCount(3);
+        projectDescArea.setMaxWidth(Double.MAX_VALUE);
 
-        // 添加到网格
         int row = 0;
         grid.add(new Label("项目名称:"), 0, row);
-        grid.add(projectNameField, 1, row);
-        row++;
+        grid.add(projectNameField, 1, row++);
         grid.add(new Label("项目类型:"), 0, row);
-        grid.add(projectTypeField, 1, row);
-        row++;
+        grid.add(projectTypeCombo, 1, row++);
         grid.add(new Label("应用名称:"), 0, row);
-        grid.add(appNameField, 1, row);
-        row++;
+        grid.add(appNameField, 1, row++);
         grid.add(new Label("应用端口:"), 0, row);
-        grid.add(appPortField, 1, row);
-        row++;
+        grid.add(appPortField, 1, row++);
         grid.add(new Label("Schema名称:"), 0, row);
-        grid.add(schemaField, 1, row);
-        row++;
+        grid.add(schemaField, 1, row++);
         grid.add(new Label("基础路径:"), 0, row);
-        grid.add(basePathField, 1, row);
-        row++;
+        grid.add(basePathField, 1, row++);
         grid.add(new Label("项目描述:"), 0, row);
         grid.add(projectDescArea, 1, row);
 
         dialog.getDialogPane().setContent(grid);
 
-        // 设置结果转换器
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == saveButtonType) {
-                // 更新设置对象
-                setting.setProjectName(projectNameField.getText());
-                setting.setProjectType(projectTypeField.getText());
-                setting.setAppName(appNameField.getText());
-                setting.setAppPort(appPortField.getText());
-                setting.setSchemaNm(schemaField.getText());
-                setting.setBasePath(basePathField.getText());
-                setting.setProjectDesc(projectDescArea.getText());
-                
-                // 保存到数据库
-                projectGroupService.saveProjectSetting(setting);
-                
-                // 刷新列表
-                refreshProjectSettingsList(setting.getGroupName());
-                
-                return setting;
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String projectName = StringUtils.trimToEmpty(projectNameField.getText());
+            String appName = StringUtils.trimToEmpty(appNameField.getText());
+            String projectType = projectTypeCombo.getValue();
+            if (StringUtils.isBlank(projectName)) {
+                ViewUtils.alertForFail("项目名称不能为空！");
+                event.consume();
+                return;
             }
-            return null;
+            if (StringUtils.isBlank(projectType)) {
+                ViewUtils.alertForFail("请选择项目类型！");
+                event.consume();
+                return;
+            }
+            if (StringUtils.isBlank(appName)) {
+                ViewUtils.alertForFail("应用名称不能为空！");
+                event.consume();
+                return;
+            }
+            if (isNew) {
+                ProjectSettingPO existing = projectGroupService.queryProjectSettingByGroupAndName(setting.getGroupName(), projectName);
+                if (existing != null) {
+                    ViewUtils.alertForFail("项目名称已存在，请更换后再保存！");
+                    event.consume();
+                }
+            }
         });
 
-        dialog.showAndWait();
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton != saveButtonType) {
+                return null;
+            }
+            if (isNew) {
+                setting.setProjectName(projectNameField.getText().trim());
+            }
+            setting.setProjectType(ProjectTypeEnum.toCode(projectTypeCombo.getValue()));
+            setting.setAppName(appNameField.getText().trim());
+            setting.setAppPort(appPortField.getText());
+            setting.setSchemaNm(schemaField.getText());
+            setting.setBasePath(basePathField.getText());
+            setting.setProjectDesc(projectDescArea.getText());
+            return setting;
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            try {
+                if (isNew) {
+                    if (StringUtils.isBlank(result.getCurFlag())) {
+                        result.setCurFlag("N");
+                    }
+                    if (StringUtils.isBlank(result.getShowFlag())) {
+                        result.setShowFlag("Y");
+                    }
+                    projectGroupService.saveProjectSetting(result);
+                    ViewUtils.alertForSucess("新项目添加成功！");
+                } else {
+                    projectGroupService.updateProjectSetting(result);
+                    ViewUtils.alertForSucess("项目更新成功！");
+                }
+                refreshProjectSettingsList(result.getGroupName());
+                refreshMainProjectComboIfNeeded(result.getGroupName());
+            } catch (Exception e) {
+                e.printStackTrace();
+                ViewUtils.alertForFail((isNew ? "新增项目失败: " : "更新项目失败: ") + e.getMessage());
+            }
+        });
+    }
+
+    private ComboBox<String> createProjectTypeCombo(String currentValue, boolean isNew) {
+        ComboBox<String> combo = new ComboBox<>();
+        combo.getItems().addAll(ProjectTypeEnum.displayValues());
+        combo.setMaxWidth(Double.MAX_VALUE);
+        combo.setPromptText("请选择项目类型");
+        ProjectTypeEnum parsed = ProjectTypeEnum.parse(currentValue);
+        if (parsed != null) {
+            combo.setValue(parsed.toDisplay());
+        } else if (isNew) {
+            combo.setValue(ProjectTypeEnum.CORE.toDisplay());
+        } else if (StringUtils.isNotBlank(currentValue)) {
+            combo.getItems().add(currentValue);
+            combo.setValue(currentValue);
+        }
+        return combo;
+    }
+
+    private void initDialogOwner(Dialog<?> dialog) {
+        Window owner = projectGroupCombo == null || projectGroupCombo.getScene() == null
+                ? null : projectGroupCombo.getScene().getWindow();
+        if (owner != null) {
+            dialog.initOwner(owner);
+            dialog.initModality(Modality.WINDOW_MODAL);
+        }
+    }
+
+    private void refreshMainProjectComboIfNeeded(String groupName) {
+        if (mainController != null && groupName != null && groupName.equals(mainController.getCurrentGroup())) {
+            Platform.runLater(() -> {
+                try {
+                    mainController.refreshProjectComboBox();
+                } catch (Exception e) {
+                    System.err.println("[ERROR] 刷新主界面项目下拉列表失败: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
     /**
@@ -526,26 +627,12 @@ public class PaneProjectGroupController implements Initializable {
             ViewUtils.alertForFail("请先选择一个项目群！");
             return;
         }
-        
-        // 创建新的项目设置对象
+
         ProjectSettingPO newSetting = new ProjectSettingPO();
         newSetting.setGroupName(currentGroupName);
-        newSetting.setProjectName("新项目");
-        newSetting.setProjectType("");
-        newSetting.setAppName("");
-        newSetting.setAppPort("");
-        newSetting.setSchemaNm("");
-        newSetting.setBasePath("");
-        newSetting.setProjectDesc("");
         newSetting.setCurFlag("N");
         newSetting.setShowFlag("Y");
-        
-        // 保存到数据库
-        projectGroupService.saveProjectSetting(newSetting);
-        
-        // 刷新列表
-        refreshProjectSettingsList(currentGroupName);
-        ViewUtils.alertForSucess("新项目添加成功！");
+        showProjectDialog(newSetting, true);
     }
 
     /**
@@ -574,208 +661,127 @@ public class PaneProjectGroupController implements Initializable {
      * 维护项目组
      */
     private void updProjectGroup() {
-        // 创建新窗口
         Stage stage = new Stage();
         stage.setTitle("维护项目组");
-        stage.setWidth(600);
-        stage.setHeight(500);
+        stage.setWidth(640);
+        stage.setHeight(480);
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initOwner(projectGroupCombo.getScene().getWindow());
-        
-        // 创建表格
+
         TableView<ProjectGroupPO> groupTable = new TableView<>();
-        groupTable.setEditable(true);
-        
-        // 创建列
+        groupTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
         TableColumn<ProjectGroupPO, String> groupNameColumn = new TableColumn<>("项目组名称");
         TableColumn<ProjectGroupPO, String> groupDescColumn = new TableColumn<>("项目组描述");
         TableColumn<ProjectGroupPO, String> actionColumn = new TableColumn<>("操作");
-        
-        // 设置列宽
         groupNameColumn.setPrefWidth(200);
-        groupDescColumn.setPrefWidth(250);
+        groupDescColumn.setPrefWidth(280);
         actionColumn.setPrefWidth(100);
-        
-        // 设置数据绑定
-        groupNameColumn.setCellValueFactory(data -> 
+
+        groupNameColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getGroupName()));
-        groupDescColumn.setCellValueFactory(data -> 
+        groupDescColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getGroupDesc()));
-        
-        // 设置列为可编辑
-        groupNameColumn.setEditable(true);
-        groupDescColumn.setEditable(true);
-        
-        // 设置可编辑
-        groupNameColumn.setCellFactory(createEditableCellFactory(groupTable, true));
-        groupDescColumn.setCellFactory(createEditableCellFactory(groupTable, false));
-        
-        // 设置编辑提交事件
-        groupNameColumn.setOnEditCommit(event -> {
-            ProjectGroupPO group = event.getRowValue();
-            group.setGroupName(event.getNewValue());
-        });
-        
-        groupDescColumn.setOnEditCommit(event -> {
-            ProjectGroupPO group = event.getRowValue();
-            group.setGroupDesc(event.getNewValue());
-        });
-        
-        // 设置操作列
         actionColumn.setCellFactory(createDeleteCellFactory(groupTable));
-        
-        // 添加列到表格
         groupTable.getColumns().addAll(groupNameColumn, groupDescColumn, actionColumn);
-        
-        // 加载数据
         refreshGroupTable(groupTable);
-        
-        // 设置双击编辑
-        groupTable.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                ProjectGroupPO selectedItem = groupTable.getSelectionModel().getSelectedItem();
-                if (selectedItem != null) {
-                    // 获取点击的列
-                    TablePosition<ProjectGroupPO, ?> pos = groupTable.getFocusModel().getFocusedCell();
-                    if (pos != null && pos.getColumn() < 2) { // 只允许前两列编辑
-                        groupTable.edit(pos.getRow(), groupTable.getColumns().get(pos.getColumn()));
-                    }
-                }
-            }
-        });
-        
-        // 创建按钮
+
+        Button addBtn = new Button("添加项目组");
         Button refreshBtn = new Button("刷新");
-        Button saveBtn = new Button("保存所有");
-        
-        // 按钮事件
+        addBtn.setOnAction(e -> showAddGroupDialog(groupTable));
         refreshBtn.setOnAction(e -> refreshGroupTable(groupTable));
-        
-        saveBtn.setOnAction(e -> {
-            try {
-                // 只保存有项目组名称的数据
-                for (ProjectGroupPO group : groupTable.getItems()) {
-                    if (StringUtils.isNotBlank(group.getGroupName())) {
-                        projectGroupService.saveOrUpdateProjectGroup(group);
-                    }
-                }
-                ViewUtils.alertForSucess("保存成功！");
-                refreshGroupTable(groupTable);
-                // 刷新主界面的项目群下拉列表
-                initProjectGroupCombo();
-            } catch (Exception ex) {
-                ViewUtils.alertForFail("保存失败：" + ex.getMessage());
-            }
-        });
-        
-        // 创建按钮容器
-        HBox buttonBox = new HBox(10, refreshBtn, saveBtn);
-        buttonBox.setPadding(new javafx.geometry.Insets(10));
-        
-        // 创建主容器
+
+        HBox buttonBox = new HBox(10, addBtn, refreshBtn);
+        buttonBox.setAlignment(Pos.CENTER_LEFT);
+        buttonBox.setPadding(new Insets(10, 0, 0, 0));
+
         VBox root = new VBox(10, groupTable, buttonBox);
-        root.setPadding(new javafx.geometry.Insets(10));
-        
-        // 设置场景
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
-        
-        // 显示窗口
+        root.setPadding(new Insets(10));
+        VBox.setVgrow(groupTable, Priority.ALWAYS);
+        stage.setScene(new Scene(root));
         stage.showAndWait();
     }
-    
+
     /**
-     * 创建可编辑单元格工厂
+     * 添加项目组
      */
-    private Callback<TableColumn<ProjectGroupPO, String>, TableCell<ProjectGroupPO, String>> createEditableCellFactory(TableView<ProjectGroupPO> table, boolean isGroupNameColumn) {
-        return col -> new TableCell<ProjectGroupPO, String>() {
-            private TextField textField;
-            
-            @Override
-            public void startEdit() {
-                // 允许编辑，包括空白行
-                super.startEdit();
-                createTextField();
-                setText(null);
-                setGraphic(textField);
-                textField.requestFocus();
+    private void showAddGroupDialog(TableView<ProjectGroupPO> groupTable) {
+        Dialog<ProjectGroupPO> dialog = new Dialog<>();
+        dialog.setTitle("添加项目组");
+        dialog.setHeaderText("请填写项目组信息");
+        dialog.setResizable(true);
+        initDialogOwner(dialog);
+
+        ButtonType saveButtonType = new ButtonType("保存", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField groupNameField = new TextField();
+        groupNameField.setPromptText("请输入项目组名称");
+        groupNameField.setMaxWidth(Double.MAX_VALUE);
+        TextField groupDescField = new TextField();
+        groupDescField.setPromptText("请输入项目组描述");
+        groupDescField.setMaxWidth(Double.MAX_VALUE);
+
+        grid.add(new Label("项目组名称:"), 0, 0);
+        grid.add(groupNameField, 1, 0);
+        grid.add(new Label("项目组描述:"), 0, 1);
+        grid.add(groupDescField, 1, 1);
+        dialog.getDialogPane().setContent(grid);
+
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String groupName = StringUtils.trimToEmpty(groupNameField.getText());
+            if (StringUtils.isBlank(groupName)) {
+                ViewUtils.alertForFail("项目组名称不能为空！");
+                event.consume();
+                return;
             }
-            
-            @Override
-            public void cancelEdit() {
-                super.cancelEdit();
-                setText(getItem());
-                setGraphic(null);
+            ProjectGroupPO existing = projectGroupService.queryProjectGroupByGroupName(groupName);
+            if (existing != null) {
+                ViewUtils.alertForFail("项目组名称已存在，请更换后再保存！");
+                event.consume();
             }
-            
-            @Override
-            public void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    if (isEditing()) {
-                        if (textField != null) {
-                            textField.setText(getString());
-                        }
-                        setText(null);
-                        setGraphic(textField);
-                    } else {
-                        setText(getString());
-                        setGraphic(null);
-                    }
-                }
+        });
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton != saveButtonType) {
+                return null;
             }
-            
-            private void createTextField() {
-                textField = new TextField(getString());
-                textField.setMinWidth(this.getWidth() - this.getGraphicTextGap() * 2);
-                textField.focusedProperty().addListener((arg0, oldValue, newValue) -> {
-                    if (!newValue) {
-                        commitEdit(textField.getText());
-                    }
-                });
-                textField.setOnAction(e -> {
-                    commitEdit(textField.getText());
-                    // 如果是项目组名称列，且输入了内容，则在底部添加新行
-                    if (isGroupNameColumn && StringUtils.isNotBlank(textField.getText())) {
-                        Platform.runLater(() -> {
-                            if (table.getItems().isEmpty()) {
-                                return;
-                            }
-                            int lastIndex = table.getItems().size() - 1;
-                            ProjectGroupPO currentItem = table.getItems().get(lastIndex);
-                            if (currentItem == getTableView().getItems().get(getIndex())) {
-                                // 只有当项目组名称不为空时才添加新行
-                                if (StringUtils.isNotBlank(textField.getText())) {
-                                    ProjectGroupPO newGroup = new ProjectGroupPO();
-                                    newGroup.setGroupName("");
-                                    newGroup.setGroupDesc("");
-                                    newGroup.setCurFlag("N");
-                                    table.getItems().add(newGroup);
-                                }
-                            }
-                        });
-                    }
-                });
+            ProjectGroupPO group = new ProjectGroupPO();
+            group.setGroupName(groupNameField.getText().trim());
+            group.setGroupDesc(groupDescField.getText());
+            group.setCurFlag("N");
+            return group;
+        });
+
+        dialog.showAndWait().ifPresent(group -> {
+            try {
+                projectGroupService.saveProjectGroup(group);
+                ViewUtils.alertForSucess("项目组添加成功！");
+                refreshGroupTable(groupTable);
+                initProjectGroupCombo();
+                projectGroupCombo.setValue(group.getGroupName());
+                refreshProjectSettingsList(group.getGroupName());
+            } catch (Exception e) {
+                e.printStackTrace();
+                ViewUtils.alertForFail("添加项目组失败：" + e.getMessage());
             }
-            
-            private String getString() {
-                return getItem() == null ? "" : getItem();
-            }
-        };
+        });
     }
-    
+
     /**
      * 创建删除按钮单元格工厂
      */
     private Callback<TableColumn<ProjectGroupPO, String>, TableCell<ProjectGroupPO, String>> createDeleteCellFactory(TableView<ProjectGroupPO> table) {
         return column -> new TableCell<ProjectGroupPO, String>() {
             private final Button deleteBtn = new Button();
-            
+
             {
-                // 设置删除按钮样式 - 使用SVG图标样式
                 javafx.scene.shape.SVGPath trashIcon = new javafx.scene.shape.SVGPath();
                 trashIcon.setContent("M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14zM10 11v6M14 11v6");
                 trashIcon.setStyle("-fx-stroke: #222; -fx-stroke-width: 1.5; -fx-fill: transparent;");
@@ -790,24 +796,22 @@ public class PaneProjectGroupController implements Initializable {
                 deleteBtn.setPrefHeight(28);
                 deleteBtn.setMaxHeight(28);
                 deleteBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 2;");
-                // 添加鼠标悬停效果
                 deleteBtn.setOnMouseEntered(e -> deleteBtn.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 8;"));
                 deleteBtn.setOnMouseExited(e -> deleteBtn.setStyle("-fx-background-color: transparent;"));
                 deleteBtn.setOnMousePressed(e -> deleteBtn.setStyle("-fx-background-color: #b0b0b0; -fx-background-radius: 8;"));
                 deleteBtn.setOnMouseReleased(e -> deleteBtn.setStyle("-fx-background-color: #e0e0e0; -fx-background-radius: 8;"));
                 deleteBtn.setOnAction(e -> {
                     ProjectGroupPO group = getTableView().getItems().get(getIndex());
-                    // 只有有项目组名称的才能删除
                     if (StringUtils.isNotBlank(group.getGroupName())) {
                         handleDeleteGroup(group, table);
                     }
                 });
             }
-            
+
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || getTableView().getItems().get(getIndex()) == null
+                if (empty || getIndex() < 0 || getIndex() >= getTableView().getItems().size()
                         || StringUtils.isBlank(getTableView().getItems().get(getIndex()).getGroupName())) {
                     setGraphic(null);
                 } else {
@@ -817,22 +821,18 @@ public class PaneProjectGroupController implements Initializable {
             }
         };
     }
-    
+
     /**
      * 刷新项目组表格
      */
     private void refreshGroupTable(TableView<ProjectGroupPO> table) {
         table.getItems().clear();
         List<ProjectGroupPO> groups = projectGroupService.queryAllProjectGroups();
-        table.getItems().addAll(groups);
-        // 添加一个空白行用于新增
-        ProjectGroupPO emptyGroup = new ProjectGroupPO();
-        emptyGroup.setGroupName("");
-        emptyGroup.setGroupDesc("");
-        emptyGroup.setCurFlag("N");
-        table.getItems().add(emptyGroup);
+        if (groups != null) {
+            table.getItems().addAll(groups);
+        }
     }
-    
+
     /**
      * 处理删除项目组
      */
@@ -841,15 +841,20 @@ public class PaneProjectGroupController implements Initializable {
         alert.setTitle("确认删除");
         alert.setHeaderText(null);
         alert.setContentText("确定要删除项目组 '" + group.getGroupName() + "' 吗？\n注意：删除项目组将同时删除该组下的所有项目设置！");
-        
+
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
-                    projectGroupService.deleteProjectGroup(group.getGroupName());
+                    String deletedName = group.getGroupName();
+                    projectGroupService.deleteProjectGroup(deletedName);
                     ViewUtils.alertForSucess("删除成功！");
                     refreshGroupTable(table);
-                    // 刷新主界面的项目群下拉列表
+                    String selected = projectGroupCombo.getValue();
                     initProjectGroupCombo();
+                    if (deletedName.equals(selected) && !projectGroupCombo.getItems().isEmpty()) {
+                        projectGroupCombo.getSelectionModel().selectFirst();
+                        refreshProjectSettingsList(projectGroupCombo.getValue());
+                    }
                 } catch (Exception e) {
                     ViewUtils.alertForFail("删除失败：" + e.getMessage());
                 }

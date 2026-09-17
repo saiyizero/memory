@@ -52,6 +52,24 @@ public class ProjectGroupService {
     public void saveProjectSetting(ProjectSettingPO projectSetting) {
         projectSettingRpcService.save(projectSetting);
     }
+
+    /**
+     * 更新项目设置（项目名称作为主键不允许修改）
+     */
+    public void updateProjectSetting(ProjectSettingPO projectSetting) {
+        ProjectSettingPO where = new ProjectSettingPO();
+        where.setGroupName(projectSetting.getGroupName());
+        where.setProjectName(projectSetting.getProjectName());
+
+        ProjectSettingPO update = new ProjectSettingPO();
+        update.setProjectType(projectSetting.getProjectType());
+        update.setProjectDesc(projectSetting.getProjectDesc());
+        update.setAppName(projectSetting.getAppName());
+        update.setAppPort(projectSetting.getAppPort());
+        update.setSchemaNm(projectSetting.getSchemaNm());
+        update.setBasePath(projectSetting.getBasePath());
+        projectSettingRpcService.updateByOne(update, where);
+    }
     
     /**
      * 切换项目
@@ -116,9 +134,12 @@ public class ProjectGroupService {
     }
     
     /**
-     * 删除项目组
+     * 删除项目组，同时删除该组下的项目设置
      */
     public void deleteProjectGroup(String groupName) {
+        ProjectSettingPO settingWhere = new ProjectSettingPO();
+        settingWhere.setGroupName(groupName);
+        projectSettingRpcService.delete(settingWhere);
         projectGroupRpcService.deleteProjectGroup(groupName);
     }
     
