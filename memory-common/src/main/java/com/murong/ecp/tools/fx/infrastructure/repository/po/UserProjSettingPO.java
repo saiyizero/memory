@@ -16,9 +16,6 @@ public class UserProjSettingPO {
     private String username;         // 用户名
     private String schemaNm;         // 模式名称
     private String basePath;         // 基础路径
-    private String propPath;         // 属性路径
-    private String enumPath;         // 枚举路径
-    private String msgcdPath;        // 消息代码路径
     private String curFlag;          // 当前标志
     private String showFlag;         // 显示标志
     private String updateBy;         // 更新人

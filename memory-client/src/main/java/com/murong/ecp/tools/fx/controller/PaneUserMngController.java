@@ -1143,9 +1143,6 @@ public class PaneUserMngController implements Initializable {
         userProjSetting.setUserId(user.getUserId());
         userProjSetting.setUsername(user.getUsername());
         userProjSetting.setSchemaNm(StringUtils.defaultString(project.getSchemaNm()));
-        userProjSetting.setPropPath(StringUtils.defaultString(project.getPropPath()));
-        userProjSetting.setEnumPath(StringUtils.defaultString(project.getEnumPath()));
-        userProjSetting.setMsgcdPath(StringUtils.defaultString(project.getMsgcdPath()));
         userProjSetting.setCurFlag("N");
         userProjSetting.setShowFlag("Y");
         userProjSetting.setUpdateBy(user.getUsername());

@@ -13,9 +13,6 @@ public class ProjectSettingPO {
     private String appName;        // 应用名称
     private String appPort;        // 应用端口
     private String schemaNm;       // Schema名称
-    private String propPath;       // 属性路径
-    private String enumPath;       // 枚举路径
-    private String msgcdPath;      // 消息代码路径
     private String curFlag;        // 当前标志
     private String updateBy;       // 更新人
     private String updateTime;     // 更新时间

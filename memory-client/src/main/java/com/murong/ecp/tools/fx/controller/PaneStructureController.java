@@ -964,9 +964,6 @@ public class PaneStructureController implements Initializable {
             projectSettingPO.setAppName(currentProject.getAppName());
             projectSettingPO.setAppPort(currentProject.getAppPort());
             projectSettingPO.setSchemaNm(currentProject.getSchemaNm());
-            projectSettingPO.setPropPath(currentProject.getPropPath());
-            projectSettingPO.setEnumPath(currentProject.getEnumPath());
-            projectSettingPO.setMsgcdPath(currentProject.getMsgcdPath());
             projectSettingPO.setCurFlag(currentProject.getCurFlag());
             projectSettingPO.setUpdateBy(currentProject.getUpdateBy());
             projectSettingPO.setUpdateTime(currentProject.getUpdateTime());

@@ -966,9 +966,6 @@ public class PaneProjectGroupController implements Initializable {
                 newProject.setAppName(selectedProject.getAppName());
                 newProject.setAppPort(selectedProject.getAppPort());
                 newProject.setSchemaNm(selectedProject.getSchemaNm());
-                newProject.setPropPath(selectedProject.getPropPath());
-                newProject.setEnumPath(selectedProject.getEnumPath());
-                newProject.setMsgcdPath(selectedProject.getMsgcdPath());
                 newProject.setCurFlag("N"); // 新复制的项目默认不是当前项目
                 newProject.setUpdateBy(selectedProject.getUpdateBy());
                 newProject.setUpdateTime(selectedProject.getUpdateTime());

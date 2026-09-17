@@ -995,9 +995,6 @@ public class MainController {
         convertedProjectSetting.setAppName(po.getAppName());
         convertedProjectSetting.setAppPort(po.getAppPort());
         convertedProjectSetting.setSchemaNm(po.getSchemaNm());
-        convertedProjectSetting.setPropPath(po.getPropPath());
-        convertedProjectSetting.setEnumPath(po.getEnumPath());
-        convertedProjectSetting.setMsgcdPath(po.getMsgcdPath());
         convertedProjectSetting.setCurFlag(po.getCurFlag());
         convertedProjectSetting.setUpdateBy(po.getUpdateBy());
         convertedProjectSetting.setUpdateTime(po.getUpdateTime());
