@@ -8,10 +8,15 @@ import java.util.List;
 public final class MenuCatalog {
 
     public static final String MENU_MANAGEMENT_KEY = "menuManagement";
+    public static final String CHANGE_PASSWORD_KEY = "changePassword";
 
-    public record Item(String key, String text, String icon, String fxmlPath, boolean adminOnly) {
+    public record Item(String key, String text, String icon, String fxmlPath, boolean adminOnly, boolean alwaysVisible) {
         public Item(String key, String text, String icon, String fxmlPath) {
-            this(key, text, icon, fxmlPath, false);
+            this(key, text, icon, fxmlPath, false, false);
+        }
+
+        public Item(String key, String text, String icon, String fxmlPath, boolean adminOnly) {
+            this(key, text, icon, fxmlPath, adminOnly, false);
         }
     }
 
@@ -54,6 +59,7 @@ public final class MenuCatalog {
             )),
             new Group("about", "基础配置", "remixB/settings-5-line.png", List.of(
                     new Item("basicConfig", "基础配置", "remixB/command-fill.png", "/fxml/pane_basic_config.fxml"),
+                    new Item(CHANGE_PASSWORD_KEY, "修改密码", "remixB/rotate-lock-fill.png", "/fxml/pane_change_password.fxml", false, true),
                     new Item("knowledge", "知识库", "remixB/command-fill.png", "/fxml/pane_knowledge.fxml")
             ))
     );

@@ -10,6 +10,7 @@ import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.LocalSettingDao;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.*;
 import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ChangePasswordRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjGroupRpcService;
@@ -157,5 +158,37 @@ public class LoginService {
         CrResult<UserInfoPO> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         crResult.setData(userInfoPO);
         return crResult;
+    }
+
+    /**
+     * 当前登录用户修改自己的密码，服务端会先校验原密码。
+     */
+    public CrResult<String> changeOwnPassword(String oldPassword, String newPassword) {
+        if (globalProperties.getOperator() == null
+                || StringUtils.isBlank(globalProperties.getOperator().getUsername())) {
+            CrResult<String> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("未登录，无法修改密码");
+            return crResult;
+        }
+        if (StringUtils.isBlank(oldPassword) || StringUtils.isBlank(newPassword)) {
+            CrResult<String> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("原密码和新密码均不能为空");
+            return crResult;
+        }
+
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setOldPassword(oldPassword);
+        request.setNewPassword(newPassword);
+        CrResult<String> remote = memoryHttpClient.post("/api/auth/changePassword", request, new TypeReference<CrResult<String>>() {
+        });
+        if (remote == null) {
+            CrResult<String> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("memory-service 无响应");
+            return crResult;
+        }
+        if (remote.isSucess()) {
+            localSettingDao.updateLinkInfo(globalProperties.getOperator().getUsername(), newPassword);
+        }
+        return remote;
     }
 }

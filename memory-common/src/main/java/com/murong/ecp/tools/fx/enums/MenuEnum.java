@@ -9,6 +9,7 @@ public enum MenuEnum {
     LOG_SERVICE("logService", "日志服务"),
     TEXT_EDITOR("textEditor", "文本编辑"),
     BASIC_CONFIG("basicConfig", "基础配置"),
+    CHANGE_PASSWORD("changePassword", "修改密码"),
     ENUM("enum", "枚举维护"),
     BASE_DICT("baseDict", "基础字典"),
     BIZ_DICT("bizDict", "业务字典"),

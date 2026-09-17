@@ -458,6 +458,9 @@ public class MainController {
             MenuItem[] children = Arrays.stream(group.children)
                     .filter(item -> {
                         MenuCatalog.Item catalogItem = MenuCatalog.findItem(item.key);
+                        if (catalogItem != null && catalogItem.alwaysVisible()) {
+                            return true;
+                        }
                         if (catalogItem != null && catalogItem.adminOnly() && !manager) {
                             return false;
                         }

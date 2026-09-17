@@ -5,7 +5,10 @@ import com.murong.ecp.tools.fx.enums.UserStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserInfoDao;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserInfoPO;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ChangePasswordRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
+import com.murong.ecp.tools.fx.infrastructure.rpc.ServiceRequestContext;
+import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,5 +58,58 @@ public class AuthApplicService {
         CrResult<UserInfoPO> result = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         result.setData(userInfoPO);
         return result;
+    }
+
+    @PostMapping("/api/auth/changePassword")
+    public CrResult<String> changePassword(@RequestBody ChangePasswordRequest request) {
+        if (request == null || StringUtils.isBlank(request.getOldPassword()) || StringUtils.isBlank(request.getNewPassword())) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("原密码和新密码均不能为空");
+            return result;
+        }
+        if (StringUtils.equals(request.getOldPassword(), request.getNewPassword())) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("新密码不能与原密码相同");
+            return result;
+        }
+
+        UserInfoPO currentUser = queryCurrentUser();
+        if (currentUser == null) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("未登录或用户不存在，无法修改密码");
+            return result;
+        }
+        if (!StringUtils.equals(request.getOldPassword(), currentUser.getPassword())) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("原密码校验失败");
+            return result;
+        }
+
+        UserInfoPO updUser = new UserInfoPO();
+        updUser.setPassword(request.getNewPassword());
+        updUser.setUpdateTime(MrDateUtils.getCurrentTime());
+        UserInfoPO whereUsr = new UserInfoPO();
+        whereUsr.setUserId(currentUser.getUserId());
+        userInfoDao.updateByOne(updUser, whereUsr);
+
+        CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
+        result.setData("ok");
+        result.setMsgInf("密码修改成功");
+        return result;
+    }
+
+    private UserInfoPO queryCurrentUser() {
+        ServiceRequestContext.Context ctx = ServiceRequestContext.get();
+        if (ctx == null) {
+            return null;
+        }
+        UserInfoPO user = null;
+        if (StringUtils.isNotBlank(ctx.getUserId())) {
+            user = userInfoDao.queryByUserId(ctx.getUserId());
+        }
+        if (user == null && StringUtils.isNotBlank(ctx.getUsername())) {
+            user = userInfoDao.queryByUsername(ctx.getUsername());
+        }
+        return user;
     }
 }

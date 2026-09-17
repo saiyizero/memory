@@ -72,6 +72,9 @@ public class PaneMenuMngController implements Initializable {
             flowPane.setVgap(8);
             flowPane.setPadding(new Insets(8, 4, 8, 4));
             for (MenuCatalog.Item item : group.items()) {
+                if (item.alwaysVisible()) {
+                    continue;
+                }
                 CheckBox checkBox = new CheckBox(item.text());
                 checkBox.setUserData(item);
                 menuCheckBoxes.put(item.key(), checkBox);
