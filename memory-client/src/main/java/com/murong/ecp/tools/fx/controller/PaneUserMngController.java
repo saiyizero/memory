@@ -390,20 +390,16 @@ public class PaneUserMngController implements Initializable {
      * 初始化过滤器
      */
     private void initFilters() {
-        // 角色过滤器
         roleFilterCombo.getItems().add("全部");
-        for (UserRoleEnum role : UserRoleEnum.values()) {
-            roleFilterCombo.getItems().add(role.getCode());
-        }
+        roleFilterCombo.getItems().addAll(UserRoleEnum.displayValues());
         roleFilterCombo.setValue("全部");
         roleFilterCombo.setOnAction(e -> applyFilters());
-        
-        // 状态过滤器
-        statusFilterCombo.getItems().addAll("全部", "A", "O", "D");
+
+        statusFilterCombo.getItems().add("全部");
+        statusFilterCombo.getItems().addAll(UserStatusEnum.displayValues());
         statusFilterCombo.setValue("全部");
         statusFilterCombo.setOnAction(e -> applyFilters());
-        
-        // 搜索框
+
         searchField.setPromptText("搜索用户名、真实姓名或邮箱...");
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             Platform.runLater(this::applyFilters);
@@ -434,12 +430,10 @@ public class PaneUserMngController implements Initializable {
         
         for (UserInfoPO user : allUsers) {
             boolean roleMatch = "全部".equals(roleFilter) ||
-                    (roleFilter != null && roleFilter.equals(user.getRoles()));
+                    (roleFilter != null && StringUtils.equals(extractDisplayCode(roleFilter), user.getRoles()));
             
             boolean statusMatch = "全部".equals(statusFilter) ||
-                                ("A".equals(statusFilter) && "A".equals(user.getStatus())) ||
-                                ("O".equals(statusFilter) && "O".equals(user.getStatus())) ||
-                                ("D".equals(statusFilter) && "D".equals(user.getStatus()));
+                    (statusFilter != null && StringUtils.equals(extractDisplayCode(statusFilter), user.getStatus()));
             
             boolean searchMatch = StringUtils.isBlank(searchText) ||
                                 StringUtils.containsIgnoreCase(user.getUsername(), searchText) ||

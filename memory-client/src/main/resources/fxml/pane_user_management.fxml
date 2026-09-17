@@ -19,9 +19,9 @@
         <HBox spacing="8" alignment="CENTER_LEFT">
             <children>
                 <Label text="角色过滤: " />
-                <ComboBox fx:id="roleFilterCombo" prefWidth="100" />
+                <ComboBox fx:id="roleFilterCombo" prefWidth="130" />
                 <Label text="状态过滤: " />
-                <ComboBox fx:id="statusFilterCombo" prefWidth="100" />
+                <ComboBox fx:id="statusFilterCombo" prefWidth="130" />
                 <Label text="搜索: " />
                 <TextField fx:id="searchField" prefWidth="200" />
                 <Button fx:id="refreshBtn" text="刷新" />
