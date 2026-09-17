@@ -1,6 +1,6 @@
 package com.murong.ecp.tools.fx.controller;
 
-import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import com.murong.ecp.tools.fx.domain.service.common.ProjectGroupService;
 import com.murong.ecp.tools.fx.domain.service.common.UserInfoService;
 import com.murong.ecp.tools.fx.domain.service.common.UserProjGroupService;
 import com.murong.ecp.tools.fx.domain.service.common.UserProjSettingService;
@@ -15,12 +15,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class PaneUserMngController implements Initializable {
@@ -42,9 +46,9 @@ public class PaneUserMngController implements Initializable {
     
     @Autowired
     private UserProjSettingService userProjSettingService;
-    
+
     @Autowired
-    private GlobalProperties globalProperties;
+    private ProjectGroupService projectGroupService;
     
     // 用于存储每行的选中状态
     private ObservableList<SimpleBooleanProperty> selectedList;
@@ -765,282 +769,331 @@ public class PaneUserMngController implements Initializable {
     }
 
     /**
-     * 处理分配权限
+     * 处理分配项目
      */
     private void handleAssignPermission() {
-        // 获取复选框选中的用户
         List<UserInfoPO> selectedUsers = getSelectedUsersFromCheckbox();
         if (selectedUsers.isEmpty()) {
-            ViewUtils.alertForFail("请先选择要分配权限的用户！");
+            ViewUtils.alertForFail("请先选择要分配项目的用户！");
             return;
         }
         if (selectedUsers.size() > 1) {
-            ViewUtils.alertForFail("分配权限时只能选择一个用户！");
+            ViewUtils.alertForFail("分配项目时只能选择一个用户！");
             return;
         }
-        
-        // 显示权限分配对话框
         showPermissionAssignDialog(selectedUsers.get(0));
     }
 
     /**
-     * 处理查看权限
+     * 处理查看项目
      */
     private void handleViewPermissions() {
-        // 获取复选框选中的用户
         List<UserInfoPO> selectedUsers = getSelectedUsersFromCheckbox();
         if (selectedUsers.isEmpty()) {
-            ViewUtils.alertForFail("请先选择要查看权限的用户！");
+            ViewUtils.alertForFail("请先选择要查看项目的用户！");
             return;
         }
         if (selectedUsers.size() > 1) {
-            ViewUtils.alertForFail("查看权限时只能选择一个用户！");
+            ViewUtils.alertForFail("查看项目时只能选择一个用户！");
             return;
         }
-        
-        // 显示权限查看对话框
         showPermissionViewDialog(selectedUsers.get(0));
     }
 
     /**
-     * 显示权限分配对话框
+     * 显示分配项目对话框：树形展示项目组/项目，支持批量勾选后保存。
      */
     private void showPermissionAssignDialog(UserInfoPO user) {
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("用户权限分配");
-        dialog.setHeaderText("为用户 '" + user.getUsername() + "' 分配项目权限");
+        dialog.setTitle("分配项目");
+        dialog.setHeaderText("为用户 '" + user.getUsername() + "' 分配项目");
         dialog.setResizable(true);
+        dialog.getDialogPane().setMinWidth(680);
+        dialog.getDialogPane().setMinHeight(560);
+        dialog.getDialogPane().setPrefWidth(720);
+        dialog.getDialogPane().setPrefHeight(620);
 
-        // 设置对话框按钮
-        ButtonType assignButtonType = new ButtonType("分配", ButtonBar.ButtonData.OK_DONE);
+        ButtonType saveButtonType = new ButtonType("保存", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButtonType = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
-        dialog.getDialogPane().getButtonTypes().addAll(assignButtonType, cancelButtonType);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, cancelButtonType);
 
-        // 创建表单内容
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new javafx.geometry.Insets(20, 20, 20, 20));
-
-        // 设置列约束
-        ColumnConstraints labelColumn = new ColumnConstraints();
-        labelColumn.setMinWidth(80);
-        labelColumn.setPrefWidth(100);
-        
-        ColumnConstraints inputColumn = new ColumnConstraints();
-        inputColumn.setMinWidth(200);
-        inputColumn.setPrefWidth(250);
-        
-        grid.getColumnConstraints().addAll(labelColumn, inputColumn);
-
-        // 创建项目组下拉框
-        ComboBox<String> projectGroupCombo = new ComboBox<>();
-        List<UserProjGroupPO> groups = userProjGroupService.queryUserProjGroups(new UserProjGroupPO());
-        for (UserProjGroupPO group : groups) {
-            projectGroupCombo.getItems().add(group.getGroupName());
-        }
-        projectGroupCombo.setMaxWidth(Double.MAX_VALUE);
-        
-        // 设置默认选择为 GlobalProperties.groupName
-        if (globalProperties.getGroupName() != null && !globalProperties.getGroupName().trim().isEmpty()) {
-            projectGroupCombo.setValue(globalProperties.getGroupName());
+        List<ProjectGroupPO> allGroups = projectGroupService.queryAllProjectGroups();
+        if (allGroups == null) {
+            allGroups = Collections.emptyList();
         }
 
-        // 创建项目下拉框
-        ComboBox<String> projectCombo = new ComboBox<>();
-        projectCombo.setMaxWidth(Double.MAX_VALUE);
-        projectCombo.setDisable(true); // 初始禁用
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(16, 20, 10, 20));
 
-        // 监听项目组选择变化，更新项目列表
-        projectGroupCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            projectCombo.getItems().clear();
-            projectCombo.setDisable(newVal == null);
-            
-            if (newVal != null) {
-                List<UserProjSettingPO> projects = userProjSettingService.queryByGroupName(newVal);
-                for (UserProjSettingPO project : projects) {
-                    projectCombo.getItems().add(project.getProjectName() + " (" + project.getAppName() + ")");
+        Label userLabel = new Label("用户: " + user.getUsername()
+                + (StringUtils.isNotBlank(user.getRealName()) ? " (" + user.getRealName() + ")" : ""));
+        userLabel.setStyle("-fx-font-size: 13px;");
+
+        Label hintLabel = new Label("先勾选项目，再勾选项目组；勾选项目组会自动勾选其下全部项目。点击保存完成批量分配。");
+        hintLabel.setWrapText(true);
+        hintLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #666;");
+
+        if (allGroups.isEmpty()) {
+            Label emptyLabel = new Label("暂无可分配的项目组，请先在项目组管理中创建项目组和项目。");
+            emptyLabel.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
+            content.getChildren().addAll(userLabel, hintLabel, emptyLabel);
+            dialog.getDialogPane().setContent(content);
+            dialog.showAndWait();
+            return;
+        }
+
+        Set<String> assignedGroupNames = queryAssignedGroupNames(user);
+        Set<String> assignedProjectKeys = queryAssignedProjectKeys(user);
+
+        boolean[] syncing = {false};
+        CheckBoxTreeItem<ProjectAssignNode> root = new CheckBoxTreeItem<>(ProjectAssignNode.root());
+        root.setIndependent(true);
+        root.setExpanded(true);
+
+        for (ProjectGroupPO group : allGroups) {
+            CheckBoxTreeItem<ProjectAssignNode> groupItem = new CheckBoxTreeItem<>(ProjectAssignNode.group(group));
+            groupItem.setIndependent(true);
+            groupItem.setExpanded(true);
+
+            List<ProjectSettingPO> projects = projectGroupService.queryProjectSettingsByGroupName(group.getGroupName());
+            if (projects == null) {
+                projects = Collections.emptyList();
+            }
+            for (ProjectSettingPO project : projects) {
+                CheckBoxTreeItem<ProjectAssignNode> projectItem = new CheckBoxTreeItem<>(ProjectAssignNode.project(project));
+                projectItem.setIndependent(true);
+                groupItem.getChildren().add(projectItem);
+            }
+
+            groupItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                if (syncing[0] || !Boolean.TRUE.equals(isSelected)) {
+                    return;
                 }
-                if (!projectCombo.getItems().isEmpty()) {
-                    projectCombo.getSelectionModel().selectFirst();
+                syncing[0] = true;
+                try {
+                    for (TreeItem<ProjectAssignNode> child : groupItem.getChildren()) {
+                        ((CheckBoxTreeItem<ProjectAssignNode>) child).setSelected(true);
+                    }
+                } finally {
+                    syncing[0] = false;
                 }
+            });
+
+            root.getChildren().add(groupItem);
+        }
+
+        syncing[0] = true;
+        try {
+            for (TreeItem<ProjectAssignNode> groupTreeItem : root.getChildren()) {
+                CheckBoxTreeItem<ProjectAssignNode> groupItem = (CheckBoxTreeItem<ProjectAssignNode>) groupTreeItem;
+                String groupName = groupItem.getValue().getGroupName();
+                for (TreeItem<ProjectAssignNode> projectTreeItem : groupItem.getChildren()) {
+                    CheckBoxTreeItem<ProjectAssignNode> projectItem = (CheckBoxTreeItem<ProjectAssignNode>) projectTreeItem;
+                    ProjectSettingPO project = projectItem.getValue().getProjectSetting();
+                    if (assignedProjectKeys.contains(projectAssignKey(project.getGroupName(), project.getProjectName(), project.getAppName()))) {
+                        projectItem.setSelected(true);
+                    }
+                }
+                if (assignedGroupNames.contains(groupName)) {
+                    groupItem.setSelected(true);
+                }
+            }
+        } finally {
+            syncing[0] = false;
+        }
+
+        TreeView<ProjectAssignNode> treeView = new TreeView<>(root);
+        treeView.setShowRoot(false);
+        treeView.setCellFactory(CheckBoxTreeCell.forTreeView());
+        treeView.setPrefHeight(380);
+        VBox.setVgrow(treeView, Priority.ALWAYS);
+
+        Button selectAllBtn = new Button("全选");
+        Button clearAllBtn = new Button("全不选");
+        selectAllBtn.setOnAction(e -> setAllAssignTreeSelected(root, true, syncing));
+        clearAllBtn.setOnAction(e -> setAllAssignTreeSelected(root, false, syncing));
+        HBox toolbar = new HBox(8, selectAllBtn, clearAllBtn);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+
+        content.getChildren().addAll(userLabel, hintLabel, toolbar, treeView);
+        dialog.getDialogPane().setContent(content);
+
+        Button saveBtn = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveBtn.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            try {
+                boolean saved = saveBatchProjectAssignment(user, root);
+                if (!saved) {
+                    event.consume();
+                }
+            } catch (Exception ex) {
+                event.consume();
+                ex.printStackTrace();
+                ViewUtils.alertForFail("分配项目失败: " + ex.getMessage());
             }
         });
-        
-        // 如果设置了默认项目组，手动触发项目列表更新
-        if (globalProperties.getGroupName() != null && !globalProperties.getGroupName().trim().isEmpty()) {
-            String selectedGroup = globalProperties.getGroupName();
-            if (projectGroupCombo.getItems().contains(selectedGroup)) {
-                projectCombo.getItems().clear();
-                projectCombo.setDisable(false);
-                
-                List<UserProjSettingPO> projects = userProjSettingService.queryByGroupName(selectedGroup);
-                for (UserProjSettingPO project : projects) {
-                    projectCombo.getItems().add(project.getProjectName() + " (" + project.getAppName() + ")");
-                }
-                if (!projectCombo.getItems().isEmpty()) {
-                    projectCombo.getSelectionModel().selectFirst();
-                }
-            }
-        }
 
-        // 添加字段到网格
-        grid.add(new Label("用户:"), 0, 0);
-        TextField userField = new TextField(user.getUsername() + " (" + user.getRealName() + ")");
-        userField.setEditable(false);
-        userField.setMaxWidth(Double.MAX_VALUE);
-        grid.add(userField, 1, 0);
-        
-        grid.add(new Label("项目组:"), 0, 1);
-        grid.add(projectGroupCombo, 1, 1);
-        
-        grid.add(new Label("项目:"), 0, 2);
-        grid.add(projectCombo, 1, 2);
-
-        // 设置对话框内容
-        dialog.getDialogPane().setContent(grid);
-
-        // 设置结果转换器
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == assignButtonType) {
-                String selectedGroup = projectGroupCombo.getValue();
-                String selectedProject = projectCombo.getValue();
-                
-                if (selectedGroup == null) {
-                    ViewUtils.alertForFail("请选择项目组！");
-                    return null;
-                }
-                
-                if (selectedProject == null) {
-                    ViewUtils.alertForFail("请选择项目！");
-                    return null;
-                }
-                
-                // 分配项目权限
-                assignProjectPermission(user, selectedGroup, selectedProject);
-            }
-            return null;
-        });
-
-        // 显示对话框
         dialog.showAndWait();
     }
 
-    /**
-     * 分配项目组权限
-     */
-    private void assignGroupPermission(UserInfoPO user, String groupName) {
+    private void setAllAssignTreeSelected(CheckBoxTreeItem<ProjectAssignNode> root, boolean selected, boolean[] syncing) {
+        syncing[0] = true;
         try {
-            // 检查是否已有权限
-            if (userProjGroupService.hasGroupPermission(user.getUserId(), user.getUsername(), groupName)) {
-                ViewUtils.alertForFail("该用户已有此项目组权限！");
-                return;
+            for (TreeItem<ProjectAssignNode> groupTreeItem : root.getChildren()) {
+                CheckBoxTreeItem<ProjectAssignNode> groupItem = (CheckBoxTreeItem<ProjectAssignNode>) groupTreeItem;
+                groupItem.setSelected(selected);
+                for (TreeItem<ProjectAssignNode> projectTreeItem : groupItem.getChildren()) {
+                    ((CheckBoxTreeItem<ProjectAssignNode>) projectTreeItem).setSelected(selected);
+                }
             }
-            
-            // 获取项目组信息
-            UserProjGroupPO projectGroup = userProjGroupService.queryByGroupName(groupName);
-            if (projectGroup == null) {
-                ViewUtils.alertForFail("项目组不存在！");
-                return;
-            }
-            
-            // 创建用户项目组权限
-            UserProjGroupPO userProjGroup = new UserProjGroupPO();
-            userProjGroup.setGroupName(groupName);
-            userProjGroup.setGroupDesc(projectGroup.getGroupDesc());
-            userProjGroup.setUserId(user.getUserId());
-            userProjGroup.setUsername(user.getUsername());
-            userProjGroup.setCurFlag("N");
-            
-            userProjGroupService.saveUserProjGroup(userProjGroup);
-            ViewUtils.alertForSucess("项目组权限分配成功！");
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            ViewUtils.alertForFail("分配项目组权限失败: " + e.getMessage());
+        } finally {
+            syncing[0] = false;
         }
     }
 
     /**
-     * 内部分配项目组权限（不显示提示信息）
+     * 按树勾选结果批量保存项目组和项目。
+     * @return false 表示校验未通过，对话框应保持打开
      */
-    private void assignGroupPermissionInternal(UserInfoPO user, String groupName) throws Exception {
-        // 获取项目组信息
-        UserProjGroupPO projectGroup = userProjGroupService.queryByGroupName(groupName);
-        if (projectGroup == null) {
-            throw new Exception("项目组不存在！");
+    private boolean saveBatchProjectAssignment(UserInfoPO user, CheckBoxTreeItem<ProjectAssignNode> root) throws Exception {
+        List<ProjectAssignNode> checkedGroups = new ArrayList<>();
+        List<ProjectAssignNode> checkedProjects = new ArrayList<>();
+        collectCheckedAssignNodes(root, checkedGroups, checkedProjects);
+
+        if (checkedGroups.isEmpty() && checkedProjects.isEmpty()) {
+            ViewUtils.alertForFail("请先勾选要分配的项目或项目组！");
+            return false;
         }
-        
-        // 创建用户项目组权限
+
+        Set<String> wantedGroups = new LinkedHashSet<>();
+        for (ProjectAssignNode groupNode : checkedGroups) {
+            wantedGroups.add(groupNode.getGroupName());
+        }
+        Map<String, ProjectSettingPO> wantedProjects = new LinkedHashMap<>();
+        for (ProjectAssignNode projectNode : checkedProjects) {
+            ProjectSettingPO project = projectNode.getProjectSetting();
+            wantedProjects.put(projectAssignKey(project.getGroupName(), project.getProjectName(), project.getAppName()), project);
+            wantedGroups.add(project.getGroupName());
+        }
+
+        Map<String, ProjectGroupPO> groupCatalog = new HashMap<>();
+        for (TreeItem<ProjectAssignNode> groupTreeItem : root.getChildren()) {
+            ProjectAssignNode node = groupTreeItem.getValue();
+            if (node.isGroup() && node.getProjectGroup() != null) {
+                groupCatalog.put(node.getGroupName(), node.getProjectGroup());
+            }
+        }
+
+        int addedGroup = 0;
+        int addedProject = 0;
+        for (String groupName : wantedGroups) {
+            if (!userProjGroupService.hasGroupPermission(user.getUserId(), user.getUsername(), groupName)) {
+                assignGroupPermissionInternal(user, groupCatalog.get(groupName), groupName);
+                addedGroup++;
+            }
+        }
+        for (ProjectSettingPO project : wantedProjects.values()) {
+            String appName = StringUtils.defaultString(project.getAppName());
+            if (!userProjSettingService.hasProjectPermission(user.getUserId(), user.getUsername(),
+                    project.getGroupName(), project.getProjectName(), appName)) {
+                saveUserProjectFromCatalog(user, project);
+                addedProject++;
+            }
+        }
+
+        if (addedGroup == 0 && addedProject == 0) {
+            ViewUtils.alertForSucess("保存成功，该用户已拥有所选项目。");
+        } else {
+            ViewUtils.alertForSucess("保存成功！新增项目组 " + addedGroup + " 个，新增项目 " + addedProject + " 个。");
+        }
+        return true;
+    }
+
+    private void collectCheckedAssignNodes(CheckBoxTreeItem<ProjectAssignNode> parent,
+                                           List<ProjectAssignNode> groups,
+                                           List<ProjectAssignNode> projects) {
+        for (TreeItem<ProjectAssignNode> child : parent.getChildren()) {
+            CheckBoxTreeItem<ProjectAssignNode> item = (CheckBoxTreeItem<ProjectAssignNode>) child;
+            ProjectAssignNode node = item.getValue();
+            if (node.isGroup()) {
+                if (Boolean.TRUE.equals(item.isSelected())) {
+                    groups.add(node);
+                }
+                collectCheckedAssignNodes(item, groups, projects);
+            } else if (Boolean.TRUE.equals(item.isSelected())) {
+                projects.add(node);
+            }
+        }
+    }
+
+    private Set<String> queryAssignedGroupNames(UserInfoPO user) {
+        List<UserProjGroupPO> groups = userProjGroupService.queryByUserId(user.getUserId());
+        if (groups == null || groups.isEmpty()) {
+            return new HashSet<>();
+        }
+        return groups.stream()
+                .map(UserProjGroupPO::getGroupName)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> queryAssignedProjectKeys(UserInfoPO user) {
+        List<UserProjSettingPO> projects = userProjSettingService.queryByUserId(user.getUserId());
+        if (projects == null || projects.isEmpty()) {
+            return new HashSet<>();
+        }
+        Set<String> keys = new HashSet<>();
+        for (UserProjSettingPO project : projects) {
+            keys.add(projectAssignKey(project.getGroupName(), project.getProjectName(), project.getAppName()));
+        }
+        return keys;
+    }
+
+    private String projectAssignKey(String groupName, String projectName, String appName) {
+        return StringUtils.defaultString(groupName) + "|"
+                + StringUtils.defaultString(projectName) + "|"
+                + StringUtils.defaultString(appName);
+    }
+
+    /**
+     * 内部分配项目组（不弹提示）
+     */
+    private void assignGroupPermissionInternal(UserInfoPO user, ProjectGroupPO projectGroup, String groupName) throws Exception {
+        ProjectGroupPO catalog = projectGroup;
+        if (catalog == null) {
+            catalog = projectGroupService.queryProjectGroupByGroupName(groupName);
+        }
+        if (catalog == null) {
+            throw new Exception("项目组不存在：" + groupName);
+        }
         UserProjGroupPO userProjGroup = new UserProjGroupPO();
-        userProjGroup.setGroupName(groupName);
-        userProjGroup.setGroupDesc(projectGroup.getGroupDesc());
+        userProjGroup.setGroupName(catalog.getGroupName());
+        userProjGroup.setGroupDesc(catalog.getGroupDesc());
         userProjGroup.setUserId(user.getUserId());
         userProjGroup.setUsername(user.getUsername());
         userProjGroup.setCurFlag("N");
-        
         userProjGroupService.saveUserProjGroup(userProjGroup);
     }
 
-    /**
-     * 分配项目权限
-     */
-    private void assignProjectPermission(UserInfoPO user, String groupName, String projectDisplay) {
-        try {
-            // 解析项目信息
-            String projectName = projectDisplay.split(" \\(")[0];
-            String appName = projectDisplay.split(" \\(")[1].replace(")", "");
-            
-            // 检查是否已有项目权限
-            if (userProjSettingService.hasProjectPermission(user.getUserId(), user.getUsername(), groupName, projectName, appName)) {
-                ViewUtils.alertForFail("该用户已有此项目权限！");
-                return;
-            }
-            
-            // 检查并确保用户有项目组权限
-            if (!userProjGroupService.hasGroupPermission(user.getUserId(), user.getUsername(), groupName)) {
-                // 用户没有该项目组权限，先分配项目组权限
-                assignGroupPermissionInternal(user, groupName);
-            }
-            
-            // 获取项目设置信息
-            UserProjSettingPO queryPo = new UserProjSettingPO();
-            queryPo.setGroupName(groupName);
-            queryPo.setProjectName(projectName);
-            List<UserProjSettingPO> projectSettings = userProjSettingService.queryUserProjSettings(queryPo);
-            UserProjSettingPO projectSetting = projectSettings.isEmpty() ? null : projectSettings.get(0);
-            if (projectSetting == null) {
-                ViewUtils.alertForFail("项目不存在！");
-                return;
-            }
-            
-            // 创建用户项目权限
-            UserProjSettingPO userProjSetting = new UserProjSettingPO();
-            userProjSetting.setGroupName(groupName);
-            userProjSetting.setProjectName(projectName);
-            userProjSetting.setProjectType(projectSetting.getProjectType() != null ? projectSetting.getProjectType() : "");
-            userProjSetting.setProjectDesc(projectSetting.getProjectDesc() != null ? projectSetting.getProjectDesc() : "");
-            userProjSetting.setAppName(appName);
-            userProjSetting.setAppPort(projectSetting.getAppPort() != null ? projectSetting.getAppPort() : "");
-            userProjSetting.setUserId(user.getUserId());
-            userProjSetting.setUsername(user.getUsername());
-            userProjSetting.setSchemaNm(projectSetting.getSchemaNm() != null ? projectSetting.getSchemaNm() : "");
-            userProjSetting.setBasePath(projectSetting.getBasePath() != null ? projectSetting.getBasePath() : "");
-            userProjSetting.setPropPath(projectSetting.getPropPath() != null ? projectSetting.getPropPath() : "");
-            userProjSetting.setEnumPath(projectSetting.getEnumPath() != null ? projectSetting.getEnumPath() : "");
-            userProjSetting.setMsgcdPath(projectSetting.getMsgcdPath() != null ? projectSetting.getMsgcdPath() : "");
-            userProjSetting.setCurFlag("N");
-            userProjSetting.setShowFlag("Y");
-            userProjSetting.setUpdateBy(user.getUsername());
-            userProjSetting.setUpdateTime(java.time.LocalDateTime.now().toString());
-            
-            userProjSettingService.saveUserProjSetting(userProjSetting);
-            ViewUtils.alertForSucess("项目权限分配成功！");
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            ViewUtils.alertForFail("分配项目权限失败: " + e.getMessage());
-        }
+    private void saveUserProjectFromCatalog(UserInfoPO user, ProjectSettingPO project) {
+        UserProjSettingPO userProjSetting = new UserProjSettingPO();
+        userProjSetting.setGroupName(project.getGroupName());
+        userProjSetting.setProjectName(project.getProjectName());
+        userProjSetting.setProjectType(StringUtils.defaultString(project.getProjectType()));
+        userProjSetting.setProjectDesc(StringUtils.defaultString(project.getProjectDesc()));
+        userProjSetting.setAppName(StringUtils.defaultString(project.getAppName()));
+        userProjSetting.setAppPort(StringUtils.defaultString(project.getAppPort()));
+        userProjSetting.setUserId(user.getUserId());
+        userProjSetting.setUsername(user.getUsername());
+        userProjSetting.setSchemaNm(StringUtils.defaultString(project.getSchemaNm()));
+        userProjSetting.setBasePath(StringUtils.defaultString(project.getBasePath()));
+        userProjSetting.setPropPath(StringUtils.defaultString(project.getPropPath()));
+        userProjSetting.setEnumPath(StringUtils.defaultString(project.getEnumPath()));
+        userProjSetting.setMsgcdPath(StringUtils.defaultString(project.getMsgcdPath()));
+        userProjSetting.setCurFlag("N");
+        userProjSetting.setShowFlag("Y");
+        userProjSetting.setUpdateBy(user.getUsername());
+        userProjSetting.setUpdateTime(java.time.LocalDateTime.now().toString());
+        userProjSettingService.saveUserProjSetting(userProjSetting);
     }
 
     /**
@@ -1048,8 +1101,8 @@ public class PaneUserMngController implements Initializable {
      */
     private void showPermissionViewDialog(UserInfoPO user) {
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("用户权限查看");
-        dialog.setHeaderText("用户 '" + user.getUsername() + "' 的权限详情");
+        dialog.setTitle("查看项目");
+        dialog.setHeaderText("用户 '" + user.getUsername() + "' 的项目详情");
         dialog.setResizable(true);
         // 设置对话框尺寸
         dialog.getDialogPane().setMinWidth(900);
@@ -1087,7 +1140,7 @@ public class PaneUserMngController implements Initializable {
         container.setPadding(new javafx.geometry.Insets(15, 15, 15, 15));
         
         // 标题
-        Label titleLabel = new Label("项目组权限");
+        Label titleLabel = new Label("项目组");
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333;");
         container.getChildren().add(titleLabel);
         
@@ -1149,7 +1202,7 @@ public class PaneUserMngController implements Initializable {
         container.setPadding(new javafx.geometry.Insets(15, 15, 15, 15));
         
         // 标题
-        Label titleLabel = new Label("项目权限");
+        Label titleLabel = new Label("项目");
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333;");
         container.getChildren().add(titleLabel);
         
@@ -1616,5 +1669,61 @@ public class PaneUserMngController implements Initializable {
         });
     }
 
+    /**
+     * 分配项目树节点：项目组或项目。
+     */
+    private static class ProjectAssignNode {
+        private final boolean group;
+        private final ProjectGroupPO projectGroup;
+        private final ProjectSettingPO projectSetting;
+        private final String displayName;
 
+        private ProjectAssignNode(boolean group, ProjectGroupPO projectGroup, ProjectSettingPO projectSetting, String displayName) {
+            this.group = group;
+            this.projectGroup = projectGroup;
+            this.projectSetting = projectSetting;
+            this.displayName = displayName;
+        }
+
+        static ProjectAssignNode root() {
+            return new ProjectAssignNode(true, null, null, "全部项目");
+        }
+
+        static ProjectAssignNode group(ProjectGroupPO groupPo) {
+            String desc = StringUtils.isNotBlank(groupPo.getGroupDesc()) ? "（" + groupPo.getGroupDesc() + "）" : "";
+            return new ProjectAssignNode(true, groupPo, null, "项目组：" + groupPo.getGroupName() + desc);
+        }
+
+        static ProjectAssignNode project(ProjectSettingPO project) {
+            String app = StringUtils.isNotBlank(project.getAppName()) ? "（" + project.getAppName() + "）" : "";
+            return new ProjectAssignNode(false, null, project, "项目：" + project.getProjectName() + app);
+        }
+
+        boolean isGroup() {
+            return group;
+        }
+
+        String getGroupName() {
+            if (projectGroup != null) {
+                return projectGroup.getGroupName();
+            }
+            if (projectSetting != null) {
+                return projectSetting.getGroupName();
+            }
+            return null;
+        }
+
+        ProjectGroupPO getProjectGroup() {
+            return projectGroup;
+        }
+
+        ProjectSettingPO getProjectSetting() {
+            return projectSetting;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
 }

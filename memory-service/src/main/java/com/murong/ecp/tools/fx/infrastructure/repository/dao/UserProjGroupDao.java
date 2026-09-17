@@ -58,26 +58,20 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
     }
 
     /**
-     * 保存用户项目组
+     * 保存用户项目组。
+     * 管理员给其他用户分配时会带上目标 userId/username，此时不能覆盖成当前登录人。
      */
     public void save(UserProjGroupPO po) {
-        UserInfoPO currentUser = getCurrentUser();
-        if (currentUser != null) {
-            po.setUserId(currentUser.getUserId());
-            po.setUsername(currentUser.getUsername());
-        }
+        fillCurrentUserIfAbsent(po);
         super.insert(po);
     }
 
     /**
-     * 查询用户项目组列表
+     * 查询用户项目组列表。
+     * 未指定用户时默认查当前登录人；已指定则按目标用户查询（供管理员查看/分配）。
      */
     public List<UserProjGroupPO> queryForList(UserProjGroupPO po) {
-        UserInfoPO currentUser = getCurrentUser();
-        if (currentUser != null) {
-            po.setUserId(currentUser.getUserId());
-            po.setUsername(currentUser.getUsername());
-        }
+        fillCurrentUserIfQueryUnspecified(po);
         return super.queryForList(po, "group_name asc");
     }
 
@@ -139,11 +133,42 @@ public class UserProjGroupDao extends DaoSupport<UserProjGroupPO> {
      * 更新用户项目组
      */
     public void update(UserProjGroupPO updatePo, UserProjGroupPO wherePo) {
-        UserInfoPO currentUser = getCurrentUser();
-        if (currentUser != null) {
-            wherePo.setUserId(currentUser.getUserId());
-            wherePo.setUsername(currentUser.getUsername());
-        }
+        fillCurrentUserIfQueryUnspecified(wherePo);
         super.updateByOne(updatePo, wherePo);
+    }
+
+    private void fillCurrentUserIfAbsent(UserProjGroupPO po) {
+        if (po == null) {
+            return;
+        }
+        UserInfoPO currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        if (isBlank(po.getUserId())) {
+            po.setUserId(currentUser.getUserId());
+        }
+        if (isBlank(po.getUsername())) {
+            po.setUsername(currentUser.getUsername());
+        }
+    }
+
+    private void fillCurrentUserIfQueryUnspecified(UserProjGroupPO po) {
+        if (po == null) {
+            return;
+        }
+        if (!isBlank(po.getUserId()) || !isBlank(po.getUsername())) {
+            return;
+        }
+        UserInfoPO currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        po.setUserId(currentUser.getUserId());
+        po.setUsername(currentUser.getUsername());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }
