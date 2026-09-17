@@ -249,23 +249,6 @@ CREATE TABLE mmapi.interface_data_his (
 );
 
 
-CREATE TABLE mmapi.local_setting (
-    id bigint NOT NULL,
-    link_usr_name varchar(64),
-    link_pass_word varchar(128),
-    db_usr_name varchar(64),
-    db_pass_word varchar(128),
-    db_driver_name varchar(32),
-    db_url varchar(256),
-    translate_url varchar(256),
-    translate_access varchar(64),
-    translate_token varchar(64),
-    update_by varchar(64),
-    update_time varchar(32),
-    CONSTRAINT local_setting_pkey PRIMARY KEY (id)
-);
-
-
 CREATE TABLE mmapi.login_info (
     id varchar(8) NOT NULL,
     username varchar(64) NOT NULL,
@@ -485,19 +468,6 @@ CREATE INDEX idx_user_info_email ON mmapi.user_info USING btree (email);
 CREATE INDEX idx_user_info_role ON mmapi.user_info USING btree (roles);
 CREATE INDEX idx_user_info_username ON mmapi.user_info USING btree (username);
 CREATE UNIQUE INDEX uk_user_info_username ON mmapi.user_info USING btree (username);
-
-CREATE TABLE mmapi.user_preference (
-    id varchar(128) NOT NULL,
-    user_id varchar(64) NOT NULL,
-    preference_key varchar(64) NOT NULL,
-    preference_value varchar(32),
-    description varchar(256),
-    update_by varchar(64),
-    update_time varchar(64),
-    CONSTRAINT user_preference_pkey PRIMARY KEY (id)
-);
-
-CREATE UNIQUE INDEX uk_user_preference_user_id_preference_key ON mmapi.user_preference USING btree (user_id, preference_key);
 
 CREATE TABLE mmapi.user_proj_group (
     group_name varchar(64) NOT NULL,
