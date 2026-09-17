@@ -185,6 +185,8 @@ public class MainController {
                 applySelectedProject(newVal, selectedProject, false);
                 environmentService.switchCurrentEnv(newVal, selectedProject);
             }
+            clearAllTabsAndMenuSelection();
+            ViewUtils.alertForSucess("项目组切换成功！");
         });
 
         // 项目名称下拉切换，激活对应记录
