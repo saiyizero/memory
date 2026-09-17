@@ -13,7 +13,6 @@ public class ProjectSettingPO {
     private String appName;        // 应用名称
     private String appPort;        // 应用端口
     private String schemaNm;       // Schema名称
-    private String basePath;       // 基础路径
     private String propPath;       // 属性路径
     private String enumPath;       // 枚举路径
     private String msgcdPath;      // 消息代码路径

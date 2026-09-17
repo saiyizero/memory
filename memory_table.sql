@@ -317,7 +317,6 @@ CREATE TABLE mmapi.project_setting (
     app_name varchar(32) NOT NULL,
     app_port varchar(16),
     schema_nm varchar(64),
-    base_path varchar(256),
     prop_path varchar(256),
     enum_path varchar(256),
     msgcd_path varchar(256),
