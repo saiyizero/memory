@@ -72,10 +72,7 @@ public class PaneMenuMngController implements Initializable {
             flowPane.setVgap(8);
             flowPane.setPadding(new Insets(8, 4, 8, 4));
             for (MenuCatalog.Item item : group.items()) {
-                if (item.alwaysVisible()) {
-                    continue;
-                }
-                CheckBox checkBox = new CheckBox(item.text());
+                CheckBox checkBox = new CheckBox(item.alwaysVisible() ? item.text() + "（默认开放）" : item.text());
                 checkBox.setUserData(item);
                 menuCheckBoxes.put(item.key(), checkBox);
                 flowPane.getChildren().add(checkBox);
@@ -127,6 +124,7 @@ public class PaneMenuMngController implements Initializable {
                 CheckBox checkBox = entry.getValue();
                 MenuCatalog.Item item = (MenuCatalog.Item) checkBox.getUserData();
                 boolean adminOnly = item != null && item.adminOnly();
+                boolean alwaysVisible = item != null && item.alwaysVisible();
                 if (adminOnly && !managerRole) {
                     checkBox.setSelected(false);
                     checkBox.setDisable(true);
@@ -136,6 +134,11 @@ public class PaneMenuMngController implements Initializable {
                 }
                 checkBox.setVisible(true);
                 checkBox.setManaged(true);
+                if (alwaysVisible) {
+                    checkBox.setSelected(true);
+                    checkBox.setDisable(true);
+                    continue;
+                }
                 if (adminOnly) {
                     checkBox.setSelected(true);
                     checkBox.setDisable(true);
@@ -171,6 +174,10 @@ public class PaneMenuMngController implements Initializable {
         boolean managerRole = UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(roleCode);
         for (CheckBox checkBox : menuCheckBoxes.values()) {
             MenuCatalog.Item item = (MenuCatalog.Item) checkBox.getUserData();
+            if (item != null && item.alwaysVisible()) {
+                checkBox.setSelected(true);
+                continue;
+            }
             if (item != null && item.adminOnly()) {
                 checkBox.setSelected(managerRole);
                 continue;
