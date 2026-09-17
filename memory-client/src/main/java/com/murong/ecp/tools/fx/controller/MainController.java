@@ -995,7 +995,6 @@ public class MainController {
         convertedProjectSetting.setAppName(po.getAppName());
         convertedProjectSetting.setAppPort(po.getAppPort());
         convertedProjectSetting.setSchemaNm(po.getSchemaNm());
-        convertedProjectSetting.setBasePath(po.getBasePath());
         convertedProjectSetting.setPropPath(po.getPropPath());
         convertedProjectSetting.setEnumPath(po.getEnumPath());
         convertedProjectSetting.setMsgcdPath(po.getMsgcdPath());
@@ -1003,7 +1002,7 @@ public class MainController {
         convertedProjectSetting.setUpdateBy(po.getUpdateBy());
         convertedProjectSetting.setUpdateTime(po.getUpdateTime());
         convertedProjectSetting.setShowFlag(po.getShowFlag());
-        environmentService.rebuildGlobalPropes(globalPropes, convertedProjectSetting);
+        environmentService.rebuildGlobalPropes(globalPropes, convertedProjectSetting, po.getBasePath());
     }
 
     /**

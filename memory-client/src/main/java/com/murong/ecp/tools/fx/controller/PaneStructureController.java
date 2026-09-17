@@ -964,7 +964,6 @@ public class PaneStructureController implements Initializable {
             projectSettingPO.setAppName(currentProject.getAppName());
             projectSettingPO.setAppPort(currentProject.getAppPort());
             projectSettingPO.setSchemaNm(currentProject.getSchemaNm());
-            projectSettingPO.setBasePath(currentProject.getBasePath());
             projectSettingPO.setPropPath(currentProject.getPropPath());
             projectSettingPO.setEnumPath(currentProject.getEnumPath());
             projectSettingPO.setMsgcdPath(currentProject.getMsgcdPath());
@@ -972,7 +971,7 @@ public class PaneStructureController implements Initializable {
             projectSettingPO.setUpdateBy(currentProject.getUpdateBy());
             projectSettingPO.setUpdateTime(currentProject.getUpdateTime());
             projectSettingPO.setShowFlag(currentProject.getShowFlag());
-            List<ProjectFolderPO> directoryData = structureService.synchronousPath(projectSettingPO);
+            List<ProjectFolderPO> directoryData = structureService.synchronousPath(projectSettingPO, currentProject.getBasePath());
             
             // 清除缓存
             projectConfigs.remove(currentProjectName);
@@ -982,7 +981,7 @@ public class PaneStructureController implements Initializable {
             loadProjectStructure();
 
             //刷新缓存参数 - 使用转换后的ProjectSettingPO
-            environService.rebuildGlobalPropes(globalPropes, projectSettingPO);
+            environService.rebuildGlobalPropes(globalPropes, projectSettingPO, currentProject.getBasePath());
 
         } catch (Exception e) {
             ViewUtils.alertForFail("扫描目录失败: " + e.getMessage());

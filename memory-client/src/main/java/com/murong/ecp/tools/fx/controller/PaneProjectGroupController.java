@@ -433,7 +433,8 @@ public class PaneProjectGroupController implements Initializable {
         appPortField.setMaxWidth(Double.MAX_VALUE);
         TextField schemaField = new TextField(StringUtils.defaultString(setting.getSchemaNm()));
         schemaField.setMaxWidth(Double.MAX_VALUE);
-        TextField basePathField = new TextField(StringUtils.defaultString(setting.getBasePath()));
+        String currentUserBasePath = isNew ? "" : projectGroupService.queryCurrentUserBasePath(setting.getGroupName(), setting.getProjectName());
+        TextField basePathField = new TextField(currentUserBasePath);
         basePathField.setMaxWidth(Double.MAX_VALUE);
         TextArea projectDescArea = new TextArea(StringUtils.defaultString(setting.getProjectDesc()));
         projectDescArea.setPrefRowCount(3);
@@ -497,7 +498,6 @@ public class PaneProjectGroupController implements Initializable {
             setting.setAppName(appNameField.getText().trim());
             setting.setAppPort(appPortField.getText());
             setting.setSchemaNm(schemaField.getText());
-            setting.setBasePath(basePathField.getText());
             setting.setProjectDesc(projectDescArea.getText());
             return setting;
         });
@@ -517,6 +517,8 @@ public class PaneProjectGroupController implements Initializable {
                     projectGroupService.updateProjectSetting(result);
                     ViewUtils.alertForSucess("项目更新成功！");
                 }
+                projectGroupService.updateCurrentUserBasePath(
+                        result.getGroupName(), result.getProjectName(), result.getAppName(), basePathField.getText());
                 refreshProjectSettingsList(result.getGroupName());
                 refreshMainProjectComboIfNeeded(result.getGroupName());
             } catch (Exception e) {
@@ -964,7 +966,6 @@ public class PaneProjectGroupController implements Initializable {
                 newProject.setAppName(selectedProject.getAppName());
                 newProject.setAppPort(selectedProject.getAppPort());
                 newProject.setSchemaNm(selectedProject.getSchemaNm());
-                newProject.setBasePath("");
                 newProject.setPropPath(selectedProject.getPropPath());
                 newProject.setEnumPath(selectedProject.getEnumPath());
                 newProject.setMsgcdPath(selectedProject.getMsgcdPath());

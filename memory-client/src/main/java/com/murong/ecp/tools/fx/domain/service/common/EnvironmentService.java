@@ -30,7 +30,7 @@ public class EnvironmentService {
         userProjSettingRpcService.switchProject(groupName, projectName);
     }
 
-    public void rebuildGlobalPropes(GlobalProperties globalPropes, ProjectSettingPO projectEnv){
+    public void rebuildGlobalPropes(GlobalProperties globalPropes, ProjectSettingPO projectEnv, String basePath){
         DbConnectionPO dbConnReqPO = new DbConnectionPO();
         dbConnReqPO.setProjectName(projectEnv.getProjectName());
         dbConnReqPO.setGroupName(projectEnv.getGroupName());
@@ -48,7 +48,7 @@ public class EnvironmentService {
         globalPropes.setAppPort(projectEnv.getAppPort());
         globalPropes.setAppName(projectEnv.getAppName());
         globalPropes.setProjectName(projectEnv.getProjectName());
-        globalPropes.setBasePath(projectEnv.getBasePath());
+        globalPropes.setBasePath(basePath);
 
         //设置项目模块路径信息
         ProjectFolderPO projectFolderPO = new ProjectFolderPO();

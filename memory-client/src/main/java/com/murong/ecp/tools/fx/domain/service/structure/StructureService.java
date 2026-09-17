@@ -25,14 +25,14 @@ public class StructureService {
     @Autowired
     GlobalProperties globalPropes;
 
-    public List<ProjectFolderPO> synchronousPath(ProjectSettingPO projectSetting) {
+    public List<ProjectFolderPO> synchronousPath(ProjectSettingPO projectSetting, String basePath) {
         if (projectSetting == null||
                 StringUtils.isEmpty(projectSetting.getProjectName())||
                 StringUtils.isEmpty(projectSetting.getGroupName())) {
             throw new RuntimeException("ProjectSetting can not be null");
         }
 
-        List<ProjectFolderPO> projectFolders = scanProjectDir(projectSetting.getBasePath());
+        List<ProjectFolderPO> projectFolders = scanProjectDir(basePath);
         if(!CollectionUtils.isEmpty(projectFolders)){
             ProjectFolderPO wherePo = new ProjectFolderPO();
             wherePo.setGroupName(projectSetting.getGroupName());

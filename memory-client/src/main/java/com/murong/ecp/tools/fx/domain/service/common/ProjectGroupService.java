@@ -4,8 +4,10 @@ import com.murong.ecp.tools.fx.enums.FlgEnum;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectGroupRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ServerInfoRpcService;
+import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectGroupPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.ProjectSettingPO;
+import com.murong.ecp.tools.fx.infrastructure.repository.po.UserProjSettingPO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ public class ProjectGroupService {
     
     @Autowired
     private ProjectSettingRpcService projectSettingRpcService;
+    @Autowired
+    private UserProjSettingRpcService userProjSettingRpcService;
     
     /**
      * 查询所有项目群
@@ -67,8 +71,46 @@ public class ProjectGroupService {
         update.setAppName(projectSetting.getAppName());
         update.setAppPort(projectSetting.getAppPort());
         update.setSchemaNm(projectSetting.getSchemaNm());
-        update.setBasePath(projectSetting.getBasePath());
         projectSettingRpcService.updateByOne(update, where);
+    }
+
+    /**
+     * 查询当前用户在该项目下的扫描路径
+     */
+    public String queryCurrentUserBasePath(String groupName, String projectName) {
+        if (StringUtils.isBlank(groupName) || StringUtils.isBlank(projectName)) {
+            return "";
+        }
+        UserProjSettingPO query = new UserProjSettingPO();
+        query.setGroupName(groupName);
+        query.setProjectName(projectName);
+        List<UserProjSettingPO> list = userProjSettingRpcService.queryForList(query);
+        if (list == null || list.isEmpty() || list.get(0) == null) {
+            return "";
+        }
+        return StringUtils.defaultString(list.get(0).getBasePath());
+    }
+
+    /**
+     * 更新当前用户在该项目下的扫描路径
+     */
+    public void updateCurrentUserBasePath(String groupName, String projectName, String appName, String basePath) {
+        if (StringUtils.isBlank(groupName) || StringUtils.isBlank(projectName)) {
+            return;
+        }
+        UserProjSettingPO where = new UserProjSettingPO();
+        where.setGroupName(groupName);
+        where.setProjectName(projectName);
+        if (StringUtils.isNotBlank(appName)) {
+            where.setAppName(appName);
+        }
+        List<UserProjSettingPO> existing = userProjSettingRpcService.queryForList(where);
+        if (existing == null || existing.isEmpty()) {
+            return;
+        }
+        UserProjSettingPO update = new UserProjSettingPO();
+        update.setBasePath(StringUtils.defaultString(basePath));
+        userProjSettingRpcService.update(update, where);
     }
     
     /**
