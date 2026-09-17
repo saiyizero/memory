@@ -56,11 +56,26 @@ mvn clean package -DskipTests
 ```
 
 ### 运行应用
-```bash
-# 先启动服务端
-mvn spring-boot:run -pl memory-service
 
-# 再启动客户端
+本地推荐一键启动，会先起 `memory-service`，等待 3 秒后再起客户端：
+
+```bash
+./memory-dev.sh start      # 启动（Ctrl+C 会一起停止）
+./memory-dev.sh stop       # 停止 service + client
+./memory-dev.sh restart    # 重启
+./memory-dev.sh status     # 查看状态
+```
+
+IntelliJ IDEA 运行配置（项目 `.run/` 目录，打开工程后可直接选）：
+
+- **Memory All**：组合启动，先等 3 秒再启动 client，可调试；点红色停止会停掉两者
+- **Memory 一键启动 / Memory 一键停止**：走上面的脚本，不走断点调试
+- **MemoryServiceApplication / MemoryApplication**：单独启动
+
+也可以仍按模块分别启动：
+
+```bash
+mvn spring-boot:run -pl memory-service
 mvn spring-boot:run -pl memory-client
 ```
 

@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Memory All" type="CompoundRunConfigurationType">
+    <toRun name="MemoryServiceApplication" type="SpringBootApplicationConfigurationType" />
+    <toRun name="MemoryApplication" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

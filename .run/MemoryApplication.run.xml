@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MemoryApplication" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="com.murong.ecp.tools.fx.MemoryApplication" />
+    <module name="memory-client" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/memory-client" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Wait MemoryService" run_configuration_type="ShConfigurationType" />
+    </method>
+  </configuration>
+</component>
