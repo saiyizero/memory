@@ -62,4 +62,18 @@ public enum UserStatusEnum {
         }
         return null;
     }
+
+    public static String toCodeDesc(String code) {
+        UserStatusEnum status = getByCode(code);
+        return status == null ? code : status.getCode() + "-" + status.getDesc();
+    }
+
+    public static String[] displayValues() {
+        UserStatusEnum[] values = values();
+        String[] result = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = values[i].getCode() + "-" + values[i].getDesc();
+        }
+        return result;
+    }
 }

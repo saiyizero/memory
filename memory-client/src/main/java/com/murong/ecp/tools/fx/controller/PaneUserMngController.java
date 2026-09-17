@@ -1,5 +1,6 @@
 package com.murong.ecp.tools.fx.controller;
 
+import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.ProjectGroupService;
 import com.murong.ecp.tools.fx.domain.service.common.UserInfoService;
 import com.murong.ecp.tools.fx.domain.service.common.UserProjGroupService;
@@ -17,6 +18,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
@@ -53,6 +55,9 @@ public class PaneUserMngController implements Initializable {
 
     @Autowired
     private ProjectGroupService projectGroupService;
+
+    @Autowired
+    private GlobalProperties globalProperties;
     
     // 用于存储每行的选中状态
     private ObservableList<SimpleBooleanProperty> selectedList;
@@ -140,10 +145,7 @@ public class PaneUserMngController implements Initializable {
         
         roleColumn.setCellValueFactory(data -> {
             String role = data.getValue().getRoles();
-            System.out.println("[DEBUG] 角色列数据绑定 - 用户: " + data.getValue().getUsername() + ", 角色: " + role);
-            // 显示角色描述而不是代码
-            String roleDesc = UserRoleEnum.getDescByCode(role);
-            return new javafx.beans.property.SimpleStringProperty(roleDesc != null ? roleDesc : role);
+            return new SimpleStringProperty(UserRoleEnum.toCodeDesc(role));
         });
         
         // 创建角色选项列表，显示格式为 "代码-描述"
@@ -160,7 +162,7 @@ public class PaneUserMngController implements Initializable {
             UserInfoPO user = event.getRowValue();
             if (user != null && newRoleDisplay != null) {
                 // 从显示值中提取角色代码（取第一个字符）
-                String newRoleCode = newRoleDisplay.substring(0, 1);
+                String newRoleCode = extractDisplayCode(newRoleDisplay);
                 // 更新用户角色
                 user.setRoles(newRoleCode);
                 // 调用服务更新数据库
@@ -172,14 +174,10 @@ public class PaneUserMngController implements Initializable {
         
         statusColumn.setCellValueFactory(data -> {
             String status = data.getValue().getStatus();
-            System.out.println("[DEBUG] 状态列数据绑定 - 用户: " + data.getValue().getUsername() + ", 状态: " + status);
-            // 显示状态描述而不是代码
-            String statusDesc = UserStatusEnum.getDescByCode(status);
-            return new javafx.beans.property.SimpleStringProperty(statusDesc != null ? statusDesc : status);
+            return new SimpleStringProperty(UserStatusEnum.toCodeDesc(status));
         });
         
-        // 创建状态选项列表，显示格式为 "代码-描述"
-        ObservableList<String> statusOptions = FXCollections.observableArrayList("A-申请", "O-启用", "D-停止");
+        ObservableList<String> statusOptions = FXCollections.observableArrayList(UserStatusEnum.displayValues());
         statusColumn.setCellFactory(ComboBoxTableCell.forTableColumn(statusOptions));
         statusColumn.setEditable(true);
         
@@ -192,7 +190,7 @@ public class PaneUserMngController implements Initializable {
             UserInfoPO user = event.getRowValue();
             if (user != null && newStatusDisplay != null) {
                 // 从显示值中提取状态代码（取第一个字符）
-                String newStatusCode = newStatusDisplay.substring(0, 1);
+                String newStatusCode = extractDisplayCode(newStatusDisplay);
                 // 更新用户状态
                 user.setStatus(newStatusCode);
                 // 调用服务更新数据库
@@ -534,7 +532,7 @@ public class PaneUserMngController implements Initializable {
         
         // 状态下拉框
         ComboBox<String> statusComboBox = new ComboBox<>();
-        statusComboBox.getItems().addAll("A-申请", "O-启用", "D-停止");
+        statusComboBox.getItems().addAll(UserStatusEnum.displayValues());
         statusComboBox.setValue("O-启用"); // 默认选择启用
         statusComboBox.setMaxWidth(Double.MAX_VALUE);
         
@@ -646,23 +644,184 @@ public class PaneUserMngController implements Initializable {
      * 显示编辑用户对话框
      */
     private void showEditDialog(UserInfoPO user) {
-        ViewUtils.alertForAsk("","编辑用户功能待实现");
+        if (user == null) {
+            ViewUtils.alertForFail("未选中用户");
+            return;
+        }
+
+        Dialog<UserInfoPO> dialog = new Dialog<>();
+        dialog.setTitle("编辑用户");
+        dialog.setHeaderText("修改用户 [" + user.getUsername() + "] 的信息");
+        dialog.setResizable(true);
+
+        ButtonType saveButtonType = new ButtonType("保存", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButtonType = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, cancelButtonType);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 20, 20, 20));
+
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(80);
+        labelColumn.setPrefWidth(100);
+        ColumnConstraints inputColumn = new ColumnConstraints();
+        inputColumn.setMinWidth(200);
+        inputColumn.setPrefWidth(250);
+        grid.getColumnConstraints().addAll(labelColumn, inputColumn);
+
+        TextField usernameField = new TextField(StringUtils.defaultString(user.getUsername()));
+        usernameField.setPromptText("请输入用户名");
+        usernameField.setMaxWidth(Double.MAX_VALUE);
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("留空则不修改密码");
+        passwordField.setMaxWidth(Double.MAX_VALUE);
+
+        TextField realNameField = new TextField(StringUtils.defaultString(user.getRealName()));
+        realNameField.setPromptText("请输入真实姓名");
+        realNameField.setMaxWidth(Double.MAX_VALUE);
+
+        TextField emailField = new TextField(StringUtils.defaultString(user.getEmail()));
+        emailField.setPromptText("请输入邮箱地址");
+        emailField.setMaxWidth(Double.MAX_VALUE);
+
+        TextField phoneField = new TextField(StringUtils.defaultString(user.getPhone()));
+        phoneField.setPromptText("请输入电话号码");
+        phoneField.setMaxWidth(Double.MAX_VALUE);
+
+        ComboBox<String> roleComboBox = new ComboBox<>();
+        roleComboBox.getItems().addAll(UserRoleEnum.displayValues());
+        roleComboBox.setValue(UserRoleEnum.toCodeDesc(user.getRoles()));
+        roleComboBox.setMaxWidth(Double.MAX_VALUE);
+
+        ComboBox<String> statusComboBox = new ComboBox<>();
+        statusComboBox.getItems().addAll(UserStatusEnum.displayValues());
+        statusComboBox.setValue(UserStatusEnum.toCodeDesc(user.getStatus()));
+        statusComboBox.setMaxWidth(Double.MAX_VALUE);
+
+        TextField remarkField = new TextField(StringUtils.defaultString(user.getRemark()));
+        remarkField.setPromptText("请输入备注信息");
+        remarkField.setMaxWidth(Double.MAX_VALUE);
+
+        grid.add(new Label("用户名:"), 0, 0);
+        grid.add(usernameField, 1, 0);
+        grid.add(new Label("密码:"), 0, 1);
+        grid.add(passwordField, 1, 1);
+        grid.add(new Label("真实姓名:"), 0, 2);
+        grid.add(realNameField, 1, 2);
+        grid.add(new Label("邮箱:"), 0, 3);
+        grid.add(emailField, 1, 3);
+        grid.add(new Label("电话:"), 0, 4);
+        grid.add(phoneField, 1, 4);
+        grid.add(new Label("角色:"), 0, 5);
+        grid.add(roleComboBox, 1, 5);
+        grid.add(new Label("状态:"), 0, 6);
+        grid.add(statusComboBox, 1, 6);
+        grid.add(new Label("备注:"), 0, 7);
+        grid.add(remarkField, 1, 7);
+        dialog.getDialogPane().setContent(grid);
+
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String error = validateEditUserForm(user, usernameField.getText(), realNameField.getText(),
+                    emailField.getText());
+            if (error != null) {
+                ViewUtils.alertForFail(error);
+                event.consume();
+            }
+        });
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton != saveButtonType) {
+                return null;
+            }
+            UserInfoPO updUser = new UserInfoPO();
+            updUser.setUserId(user.getUserId());
+            updUser.setUsername(usernameField.getText().trim());
+            updUser.setRealName(realNameField.getText().trim());
+            updUser.setEmail(emailField.getText() == null ? "" : emailField.getText().trim());
+            updUser.setPhone(phoneField.getText() == null ? "" : phoneField.getText().trim());
+            updUser.setRoles(extractDisplayCode(roleComboBox.getValue()));
+            updUser.setStatus(extractDisplayCode(statusComboBox.getValue()));
+            updUser.setRemark(remarkField.getText() == null ? "" : remarkField.getText().trim());
+            if (StringUtils.isNotBlank(passwordField.getText())) {
+                updUser.setPassword(passwordField.getText());
+            }
+            return updUser;
+        });
+
+        Optional<UserInfoPO> result = dialog.showAndWait();
+        result.ifPresent(updUser -> {
+            try {
+                userInfoService.updateUser(updUser);
+                refreshUserTable();
+                ViewUtils.alertForSucess("用户信息已更新！");
+            } catch (Exception e) {
+                e.printStackTrace();
+                ViewUtils.alertForFail("更新用户时发生错误: " + e.getMessage());
+            }
+        });
+    }
+
+    private String validateEditUserForm(UserInfoPO origin, String username, String realName, String email) {
+        if (StringUtils.isBlank(username)) {
+            return "用户名不能为空！";
+        }
+        if (StringUtils.isBlank(realName)) {
+            return "真实姓名不能为空！";
+        }
+        if (StringUtils.isNotBlank(email) && (!email.contains("@") || !email.contains("."))) {
+            return "请输入正确的邮箱地址！";
+        }
+        if (!StringUtils.equals(username.trim(), origin.getUsername())
+                && userInfoService.isUsernameExists(username.trim())) {
+            return "用户名已存在，请选择其他用户名！";
+        }
+        if (StringUtils.isNotBlank(email)
+                && !StringUtils.equalsIgnoreCase(email.trim(), origin.getEmail())
+                && userInfoService.isEmailExists(email.trim())) {
+            return "邮箱已被使用，请更换后重试！";
+        }
+        return null;
+    }
+
+    private String extractDisplayCode(String display) {
+        if (StringUtils.isBlank(display)) {
+            return null;
+        }
+        int dash = display.indexOf('-');
+        return dash > 0 ? display.substring(0, dash) : display.substring(0, 1);
     }
 
     /**
      * 处理删除用户
      */
     private void handleDeleteUser(UserInfoPO user) {
+        if (user == null) {
+            return;
+        }
+        if (isCurrentUser(user)) {
+            ViewUtils.alertForFail("不能删除当前登录用户！");
+            return;
+        }
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("确认删除");
         alert.setHeaderText(null);
         alert.setContentText("确定要删除用户 '" + user.getUsername() + "' 吗？");
-        
+
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                userInfoService.deleteUser(user.getUserId());
-                ViewUtils.alertForSucess("删除成功！");
-                refreshUserTable();
+                try {
+                    userInfoService.deleteUser(user.getUserId());
+                    ViewUtils.alertForSucess("删除成功！");
+                    refreshUserTable();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ViewUtils.alertForFail("删除用户失败: " + e.getMessage());
+                }
             }
         });
     }
@@ -671,15 +830,62 @@ public class PaneUserMngController implements Initializable {
      * 处理重置密码
      */
     private void handleResetPassword(UserInfoPO user) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("确认重置密码");
-        alert.setHeaderText(null);
-        alert.setContentText("确定要重置用户 '" + user.getUsername() + "' 的密码吗？\n新密码将设置为: 123456");
-        
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                userInfoService.updateUserPassword(user.getUserId(), "123456");
-                ViewUtils.alertForSucess("密码重置成功！新密码为: 123456");
+        if (user == null) {
+            return;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("重置密码");
+        dialog.setHeaderText("为用户 [" + user.getUsername() + "] 设置新密码");
+        dialog.setResizable(true);
+
+        ButtonType saveButtonType = new ButtonType("确定", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 20, 20, 20));
+
+        PasswordField newPasswordField = new PasswordField();
+        newPasswordField.setPromptText("请输入新密码");
+        newPasswordField.setMaxWidth(Double.MAX_VALUE);
+        PasswordField confirmPasswordField = new PasswordField();
+        confirmPasswordField.setPromptText("请再次输入新密码");
+        confirmPasswordField.setMaxWidth(Double.MAX_VALUE);
+
+        grid.add(new Label("新密码:"), 0, 0);
+        grid.add(newPasswordField, 1, 0);
+        grid.add(new Label("确认密码:"), 0, 1);
+        grid.add(confirmPasswordField, 1, 1);
+        dialog.getDialogPane().setContent(grid);
+
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String newPassword = newPasswordField.getText();
+            String confirmPassword = confirmPasswordField.getText();
+            if (StringUtils.isBlank(newPassword)) {
+                ViewUtils.alertForFail("新密码不能为空！");
+                event.consume();
+                return;
+            }
+            if (!StringUtils.equals(newPassword, confirmPassword)) {
+                ViewUtils.alertForFail("两次输入的密码不一致！");
+                event.consume();
+            }
+        });
+
+        dialog.setResultConverter(dialogButton ->
+                dialogButton == saveButtonType ? newPasswordField.getText() : null);
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(newPassword -> {
+            try {
+                userInfoService.updateUserPassword(user.getUserId(), newPassword);
+                ViewUtils.alertForSucess("密码重置成功！");
+            } catch (Exception e) {
+                e.printStackTrace();
+                ViewUtils.alertForFail("重置密码失败: " + e.getMessage());
             }
         });
     }
@@ -688,37 +894,59 @@ public class PaneUserMngController implements Initializable {
      * 处理批量删除
      */
     private void handleBatchDelete() {
-        // 获取选中的用户
         List<UserInfoPO> selectedUsers = new ArrayList<>();
         for (int i = 0; i < userTable.getItems().size(); i++) {
             if (i < selectedList.size() && selectedList.get(i).get()) {
-                UserInfoPO user = userTable.getItems().get(i);
-                selectedUsers.add(user);
+                selectedUsers.add(userTable.getItems().get(i));
             }
         }
-        
+
         if (selectedUsers.isEmpty()) {
             ViewUtils.alertForFail("请先选择要删除的用户！");
             return;
         }
-        
+
+        List<UserInfoPO> deletableUsers = selectedUsers.stream()
+                .filter(user -> !isCurrentUser(user))
+                .collect(Collectors.toList());
+        if (deletableUsers.isEmpty()) {
+            ViewUtils.alertForFail("不能删除当前登录用户！");
+            return;
+        }
+
+        String confirmText = "确定要删除选中的 " + deletableUsers.size() + " 个用户吗？";
+        if (deletableUsers.size() != selectedUsers.size()) {
+            confirmText += "\n当前登录用户已自动排除。";
+        }
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("确认批量删除");
         alert.setHeaderText(null);
-        alert.setContentText("确定要删除选中的 " + selectedUsers.size() + " 个用户吗？");
-        
+        alert.setContentText(confirmText);
+
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                List<String> userIds = new ArrayList<>();
-                for (UserInfoPO user : selectedUsers) {
-                    userIds.add(user.getUserId());
+                try {
+                    List<String> userIds = deletableUsers.stream()
+                            .map(UserInfoPO::getUserId)
+                            .collect(Collectors.toList());
+                    userInfoService.batchDeleteUsers(userIds);
+                    ViewUtils.alertForSucess("批量删除成功！");
+                    refreshUserTable();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ViewUtils.alertForFail("批量删除失败: " + e.getMessage());
                 }
-                
-                userInfoService.batchDeleteUsers(userIds);
-                ViewUtils.alertForSucess("批量删除成功！");
-                refreshUserTable();
             }
         });
+    }
+
+    private boolean isCurrentUser(UserInfoPO user) {
+        if (user == null || globalProperties == null || globalProperties.getOperator() == null) {
+            return false;
+        }
+        return StringUtils.equals(globalProperties.getOperator().getUserId(), user.getUserId())
+                || StringUtils.equals(globalProperties.getOperator().getUsername(), user.getUsername());
     }
 
     /**

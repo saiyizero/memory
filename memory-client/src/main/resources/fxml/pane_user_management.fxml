@@ -49,7 +49,7 @@
                 <TableColumn fx:id="roleColumn" text="角色" prefWidth="100" />
                 <TableColumn fx:id="statusColumn" text="状态" prefWidth="100" />
                 <TableColumn fx:id="createTimeColumn" text="更新时间" prefWidth="150" />
-                <TableColumn fx:id="actionColumn" text="操作" prefWidth="100" />
+                <TableColumn fx:id="actionColumn" text="操作" prefWidth="130" />
             </columns>
         </TableView>
     </children>

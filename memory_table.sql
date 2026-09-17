@@ -201,38 +201,6 @@ CREATE TABLE mmapi.interface_data (
 );
 
 
-CREATE TABLE mmapi.interface_data_backup (
-    id bigint,
-    interface_name varchar(128),
-    trans_name varchar(128),
-    class_name varchar(128),
-    trans_comment_zh varchar(256),
-    trans_comment_en varchar(256),
-    trans_class varchar(64),
-    simple_name varchar(128),
-    request_json text,
-    response_json text,
-    action_package varchar(64),
-    controller_package varchar(64),
-    interface_package varchar(64),
-    request_package varchar(128),
-    response_package varchar(128),
-    request_class varchar(128),
-    response_class varchar(128),
-    interface_url varchar(256),
-    method_url varchar(256),
-    update_by varchar(64),
-    update_time varchar(64),
-    app_name varchar(32),
-    lable_name varchar(64),
-    associat_entity varchar(512),
-    associat_enum varchar(512),
-    req_parent_class varchar(256),
-    rsp_parent_class varchar(256),
-    group_name varchar(64),
-    project_name varchar(64)
-);
-
 CREATE TABLE mmapi.interface_data_his (
     group_name varchar(64) NOT NULL,
     project_name varchar(64) NOT NULL,
@@ -366,29 +334,6 @@ CREATE TABLE mmapi.table_data (
     CONSTRAINT table_data_pkey PRIMARY KEY (group_name, project_name, app_name, table_name_camel)
 );
 
-
-CREATE TABLE mmapi.table_data_backup (
-    group_name varchar(64),
-    project_name varchar(64),
-    app_name varchar(32),
-    module_name varchar(64),
-    table_name_camel varchar(128),
-    table_name_snake varchar(128),
-    table_comment_cn varchar(256),
-    table_comment_en varchar(256),
-    fields_json text,
-    primary_key_json text,
-    indexes_json text,
-    lable_name varchar(64),
-    associat_enum varchar(64),
-    parent_class varchar(64),
-    gener_cd_flg varchar(8),
-    create_tab_flg varchar(8),
-    def_order_by varchar(64),
-    status varchar(8),
-    update_by varchar(64),
-    update_time varchar(64)
-);
 
 CREATE TABLE mmapi.table_diff (
     group_name varchar(64) NOT NULL,

@@ -12,6 +12,7 @@ import com.murong.ecp.tools.fx.infrastructure.repository.po.*;
 import com.murong.ecp.tools.fx.infrastructure.rpc.DbConnectionRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ChangePasswordRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
+import com.murong.ecp.tools.fx.infrastructure.rpc.RegisterRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjGroupRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
@@ -158,6 +159,33 @@ public class LoginService {
         CrResult<UserInfoPO> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         crResult.setData(userInfoPO);
         return crResult;
+    }
+
+    /**
+     * 注册新用户。注册成功后不会自动登录，由登录页引导用户使用新账号登录。
+     */
+    public CrResult<String> register(String username, String password, String realName, String email, String phone) {
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password) || StringUtils.isBlank(realName)
+                || StringUtils.isBlank(email) || StringUtils.isBlank(phone)) {
+            CrResult<String> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("用户名、密码、真实姓名、邮箱和电话均不能为空");
+            return crResult;
+        }
+
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername(username.trim());
+        request.setPassword(password);
+        request.setRealName(realName.trim());
+        request.setEmail(email.trim());
+        request.setPhone(phone.trim());
+        CrResult<String> remote = memoryHttpClient.post("/api/auth/register", request, new TypeReference<CrResult<String>>() {
+        });
+        if (remote == null) {
+            CrResult<String> crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            crResult.setMsgInf("memory-service 无响应");
+            return crResult;
+        }
+        return remote;
     }
 
     /**

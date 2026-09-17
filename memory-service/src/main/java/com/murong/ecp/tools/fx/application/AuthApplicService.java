@@ -1,12 +1,14 @@
 package com.murong.ecp.tools.fx.application;
 
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
+import com.murong.ecp.tools.fx.enums.UserRoleEnum;
 import com.murong.ecp.tools.fx.enums.UserStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.UserInfoDao;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.UserInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ChangePasswordRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.LoginRequest;
+import com.murong.ecp.tools.fx.infrastructure.rpc.RegisterRequest;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ServiceRequestContext;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -57,6 +59,57 @@ public class AuthApplicService {
         }
         CrResult<UserInfoPO> result = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         result.setData(userInfoPO);
+        return result;
+    }
+
+    @PostMapping("/api/auth/register")
+    public CrResult<String> register(@RequestBody RegisterRequest request) {
+        if (request == null || StringUtils.isBlank(request.getUsername())
+                || StringUtils.isBlank(request.getPassword())
+                || StringUtils.isBlank(request.getRealName())
+                || StringUtils.isBlank(request.getEmail())
+                || StringUtils.isBlank(request.getPhone())) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("用户名、密码、真实姓名、邮箱和电话均不能为空");
+            return result;
+        }
+        String username = request.getUsername().trim();
+        String realName = request.getRealName().trim();
+        String email = request.getEmail().trim();
+        String phone = request.getPhone().trim();
+        if (userInfoDao.isUsernameExists(username)) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("用户名已存在，请更换后重试");
+            return result;
+        }
+        if (userInfoDao.isEmailExists(email)) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("邮箱已被使用，请更换后重试");
+            return result;
+        }
+
+        UserInfoPO user = new UserInfoPO();
+        user.setUserId(MrDateUtils.getCurrentTimeLongStr());
+        user.setUsername(username);
+        user.setPassword(request.getPassword());
+        user.setRealName(realName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setRoles(UserRoleEnum.DEVELOPER.getCode());
+        user.setStatus(UserStatusEnum.ONLINE.getCode());
+        user.setUpdateBy(username);
+        user.setUpdateTime(MrDateUtils.getCurrentTime());
+        try {
+            userInfoDao.insert(user);
+        } catch (Exception e) {
+            CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);
+            result.setMsgInf("注册失败: " + e.getMessage());
+            return result;
+        }
+
+        CrResult<String> result = CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
+        result.setData("ok");
+        result.setMsgInf("注册成功，请使用新账号登录");
         return result;
     }
 

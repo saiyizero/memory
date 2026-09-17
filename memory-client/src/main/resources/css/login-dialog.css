@@ -62,6 +62,41 @@
     -fx-font-style: italic;
 }
 
+.register-button {
+    -fx-background-color: #28a745;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 20px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+
+.register-button:hover {
+    -fx-background-color: #1e7e34;
+}
+
+.register-button:pressed {
+    -fx-background-color: #155d27;
+}
+
+.register-button:disabled {
+    -fx-background-color: #6c757d;
+    -fx-opacity: 0.6;
+}
+
+.login-switch-link {
+    -fx-text-fill: #007bff;
+    -fx-font-size: 13px;
+    -fx-border-color: transparent;
+    -fx-underline: false;
+}
+
+.login-switch-link:hover {
+    -fx-text-fill: #0056b3;
+    -fx-underline: true;
+}
+
 /* 输入框样式 */
 .text-field, .password-field {
     -fx-background-color: white;
