@@ -829,7 +829,7 @@ public class PaneUserMngController implements Initializable {
                 + (StringUtils.isNotBlank(user.getRealName()) ? " (" + user.getRealName() + ")" : ""));
         userLabel.setStyle("-fx-font-size: 13px;");
 
-        Label hintLabel = new Label("先勾选项目，再勾选项目组；勾选项目组会自动勾选其下全部项目。点击保存完成批量分配。");
+        Label hintLabel = new Label("勾选项目会同时勾选所属项目组；取消勾选项目组会取消其下全部项目。勾选项目组不会自动勾选其中的项目。");
         hintLabel.setWrapText(true);
         hintLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #666;");
 
@@ -862,17 +862,28 @@ public class PaneUserMngController implements Initializable {
             for (ProjectSettingPO project : projects) {
                 CheckBoxTreeItem<ProjectAssignNode> projectItem = new CheckBoxTreeItem<>(ProjectAssignNode.project(project));
                 projectItem.setIndependent(true);
+                projectItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                    if (syncing[0] || !Boolean.TRUE.equals(isSelected)) {
+                        return;
+                    }
+                    syncing[0] = true;
+                    try {
+                        groupItem.setSelected(true);
+                    } finally {
+                        syncing[0] = false;
+                    }
+                });
                 groupItem.getChildren().add(projectItem);
             }
 
             groupItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                if (syncing[0] || !Boolean.TRUE.equals(isSelected)) {
+                if (syncing[0] || Boolean.TRUE.equals(isSelected)) {
                     return;
                 }
                 syncing[0] = true;
                 try {
                     for (TreeItem<ProjectAssignNode> child : groupItem.getChildren()) {
-                        ((CheckBoxTreeItem<ProjectAssignNode>) child).setSelected(true);
+                        ((CheckBoxTreeItem<ProjectAssignNode>) child).setSelected(false);
                     }
                 } finally {
                     syncing[0] = false;
@@ -887,14 +898,16 @@ public class PaneUserMngController implements Initializable {
             for (TreeItem<ProjectAssignNode> groupTreeItem : root.getChildren()) {
                 CheckBoxTreeItem<ProjectAssignNode> groupItem = (CheckBoxTreeItem<ProjectAssignNode>) groupTreeItem;
                 String groupName = groupItem.getValue().getGroupName();
+                boolean anyProjectSelected = false;
                 for (TreeItem<ProjectAssignNode> projectTreeItem : groupItem.getChildren()) {
                     CheckBoxTreeItem<ProjectAssignNode> projectItem = (CheckBoxTreeItem<ProjectAssignNode>) projectTreeItem;
                     ProjectSettingPO project = projectItem.getValue().getProjectSetting();
                     if (assignedProjectKeys.contains(projectAssignKey(project.getGroupName(), project.getProjectName(), project.getAppName()))) {
                         projectItem.setSelected(true);
+                        anyProjectSelected = true;
                     }
                 }
-                if (assignedGroupNames.contains(groupName)) {
+                if (anyProjectSelected || assignedGroupNames.contains(groupName)) {
                     groupItem.setSelected(true);
                 }
             }
@@ -951,7 +964,7 @@ public class PaneUserMngController implements Initializable {
     }
 
     /**
-     * 按树勾选结果批量保存项目组和项目。
+     * 按树勾选结果同步保存：勾选的新增，取消勾选的删除。
      * @return false 表示校验未通过，对话框应保持打开
      */
     private boolean saveBatchProjectAssignment(UserInfoPO user, CheckBoxTreeItem<ProjectAssignNode> root) throws Exception {
@@ -959,10 +972,9 @@ public class PaneUserMngController implements Initializable {
         List<ProjectAssignNode> checkedProjects = new ArrayList<>();
         collectCheckedAssignNodes(root, checkedGroups, checkedProjects);
 
-        if (checkedGroups.isEmpty() && checkedProjects.isEmpty()) {
-            ViewUtils.alertForFail("请先勾选要分配的项目或项目组！");
-            return false;
-        }
+        Set<String> treeGroupNames = new LinkedHashSet<>();
+        Set<String> treeProjectKeys = new LinkedHashSet<>();
+        collectTreeAssignKeys(root, treeGroupNames, treeProjectKeys);
 
         Set<String> wantedGroups = new LinkedHashSet<>();
         for (ProjectAssignNode groupNode : checkedGroups) {
@@ -985,6 +997,31 @@ public class PaneUserMngController implements Initializable {
 
         int addedGroup = 0;
         int addedProject = 0;
+        int removedGroup = 0;
+        int removedProject = 0;
+
+        List<UserProjSettingPO> existingProjects = userProjSettingService.queryByUserId(user.getUserId());
+        if (existingProjects != null) {
+            for (UserProjSettingPO existing : existingProjects) {
+                String key = projectAssignKey(existing.getGroupName(), existing.getProjectName(), existing.getAppName());
+                if (treeProjectKeys.contains(key) && !wantedProjects.containsKey(key)) {
+                    userProjSettingService.deleteUserProjSetting(existing.getGroupName(), existing.getProjectName(),
+                            existing.getAppName(), existing.getUserId(), existing.getUsername());
+                    removedProject++;
+                }
+            }
+        }
+
+        List<UserProjGroupPO> existingGroups = userProjGroupService.queryByUserId(user.getUserId());
+        if (existingGroups != null) {
+            for (UserProjGroupPO existing : existingGroups) {
+                if (treeGroupNames.contains(existing.getGroupName()) && !wantedGroups.contains(existing.getGroupName())) {
+                    userProjGroupService.deleteUserProjGroup(existing.getGroupName(), existing.getUserId(), existing.getUsername());
+                    removedGroup++;
+                }
+            }
+        }
+
         for (String groupName : wantedGroups) {
             if (!userProjGroupService.hasGroupPermission(user.getUserId(), user.getUsername(), groupName)) {
                 assignGroupPermissionInternal(user, groupCatalog.get(groupName), groupName);
@@ -1000,12 +1037,29 @@ public class PaneUserMngController implements Initializable {
             }
         }
 
-        if (addedGroup == 0 && addedProject == 0) {
-            ViewUtils.alertForSucess("保存成功，该用户已拥有所选项目。");
-        } else {
-            ViewUtils.alertForSucess("保存成功！新增项目组 " + addedGroup + " 个，新增项目 " + addedProject + " 个。");
-        }
+        ViewUtils.alertForSucess("保存成功！新增项目组 " + addedGroup + " 个、项目 " + addedProject
+                + " 个；移除项目组 " + removedGroup + " 个、项目 " + removedProject + " 个。");
         return true;
+    }
+
+    private void collectTreeAssignKeys(CheckBoxTreeItem<ProjectAssignNode> parent,
+                                       Set<String> groupNames,
+                                       Set<String> projectKeys) {
+        for (TreeItem<ProjectAssignNode> child : parent.getChildren()) {
+            ProjectAssignNode node = child.getValue();
+            if (node == null) {
+                continue;
+            }
+            if (node.isGroup()) {
+                if (StringUtils.isNotBlank(node.getGroupName())) {
+                    groupNames.add(node.getGroupName());
+                }
+                collectTreeAssignKeys((CheckBoxTreeItem<ProjectAssignNode>) child, groupNames, projectKeys);
+            } else if (node.getProjectSetting() != null) {
+                ProjectSettingPO project = node.getProjectSetting();
+                projectKeys.add(projectAssignKey(project.getGroupName(), project.getProjectName(), project.getAppName()));
+            }
+        }
     }
 
     private void collectCheckedAssignNodes(CheckBoxTreeItem<ProjectAssignNode> parent,
