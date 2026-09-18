@@ -22,7 +22,6 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class PanePendingAuditController {
+public class PaneAuditedAuditController {
 
     @Autowired
     private AuditRecordRpcService auditRecordRpcService;
@@ -41,6 +40,8 @@ public class PanePendingAuditController {
 
     @FXML private ComboBox<AuditBizTypeEnum> bizTypeCombo;
     @FXML private ComboBox<AuditOperTypeEnum> operTypeCombo;
+    @FXML private ComboBox<AuditStatusEnum> statusCombo;
+    @FXML private TextField submitByField;
     @FXML private TextField keywordField;
     @FXML private Button queryButton;
     @FXML private Button resetButton;
@@ -49,8 +50,12 @@ public class PanePendingAuditController {
     @FXML private TableColumn<AuditRecordPO, String> bizTypeColumn;
     @FXML private TableColumn<AuditRecordPO, String> bizNameColumn;
     @FXML private TableColumn<AuditRecordPO, String> operTypeColumn;
+    @FXML private TableColumn<AuditRecordPO, String> auditStatusColumn;
     @FXML private TableColumn<AuditRecordPO, String> submitByColumn;
     @FXML private TableColumn<AuditRecordPO, String> submitTimeColumn;
+    @FXML private TableColumn<AuditRecordPO, String> auditByColumn;
+    @FXML private TableColumn<AuditRecordPO, String> auditTimeColumn;
+    @FXML private TableColumn<AuditRecordPO, String> auditRemarkColumn;
     @FXML private TableColumn<AuditRecordPO, Void> actionColumn;
 
     private final ObservableList<AuditRecordPO> dataList = FXCollections.observableArrayList();
@@ -83,20 +88,24 @@ public class PanePendingAuditController {
             AuditRecordQuery query = new AuditRecordQuery();
             query.setGroupName(globalProps.getGroupName());
             query.setProjectName(globalProps.getProjectName());
-            query.setAuditStatus(AuditStatusEnum.PENDING.getCode());
+            query.setAuditedOnly(true);
             if (bizTypeCombo.getValue() != null) {
                 query.setBizType(bizTypeCombo.getValue().getCode());
             }
             if (operTypeCombo.getValue() != null) {
                 query.setOperType(operTypeCombo.getValue().getCode());
             }
+            if (statusCombo.getValue() != null) {
+                query.setAuditStatus(statusCombo.getValue().getCode());
+            }
+            query.setSubmitBy(StringUtils.trimToNull(submitByField.getText()));
             query.setKeyword(StringUtils.trimToNull(keywordField.getText()));
             List<AuditRecordPO> list = auditRecordRpcService.queryByCondition(query);
             dataList.setAll(list == null ? List.of() : list);
             totalCountLabel.setText("总数: " + dataList.size());
         } catch (Exception e) {
             e.printStackTrace();
-            ViewUtils.alertForFail("查询待审核记录失败: " + e.getMessage());
+            ViewUtils.alertForFail("查询已审核记录失败: " + e.getMessage());
         }
     }
 
@@ -104,6 +113,8 @@ public class PanePendingAuditController {
     public void resetQuery() {
         bizTypeCombo.setValue(null);
         operTypeCombo.setValue(null);
+        statusCombo.setValue(null);
+        submitByField.clear();
         keywordField.clear();
         queryRecords();
     }
@@ -116,6 +127,10 @@ public class PanePendingAuditController {
         operTypeCombo.getItems().setAll(AuditOperTypeEnum.values());
         operTypeCombo.setPromptText("全部");
         renderCombo(operTypeCombo, AuditOperTypeEnum::getDesc);
+
+        statusCombo.getItems().setAll(AuditStatusEnum.APPROVED, AuditStatusEnum.REJECTED);
+        statusCombo.setPromptText("全部");
+        renderCombo(statusCombo, AuditStatusEnum::getDesc);
     }
 
     private <T> void renderCombo(ComboBox<T> combo, java.util.function.Function<T, String> labelFn) {
@@ -142,12 +157,20 @@ public class PanePendingAuditController {
                 new SimpleStringProperty(StringUtils.defaultIfBlank(data.getValue().getBizName(), data.getValue().getBizKey())));
         operTypeColumn.setCellValueFactory(data ->
                 new SimpleStringProperty(AuditOperTypeEnum.getDescByCode(data.getValue().getOperType())));
+        auditStatusColumn.setCellValueFactory(data ->
+                new SimpleStringProperty(AuditStatusEnum.getDescByCode(data.getValue().getAuditStatus())));
         submitByColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getSubmitBy()));
         submitTimeColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getSubmitTime()));
+        auditByColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getAuditBy()));
+        auditTimeColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getAuditTime()));
+        auditRemarkColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getAuditRemark()));
         center(bizTypeColumn);
         center(operTypeColumn);
+        center(auditStatusColumn);
         center(submitByColumn);
         center(submitTimeColumn);
+        center(auditByColumn);
+        center(auditTimeColumn);
     }
 
     private void center(TableColumn<AuditRecordPO, String> column) {
@@ -157,15 +180,11 @@ public class PanePendingAuditController {
     private void initActionColumn() {
         actionColumn.setCellFactory(col -> new TableCell<>() {
             private final Button compareBtn = styledButton("对比", "#007bff");
-            private final Button approveBtn = styledButton("通过", "#52c41a");
-            private final Button rejectBtn = styledButton("驳回", "#ff4d4f");
-            private final HBox box = new HBox(6, compareBtn, approveBtn, rejectBtn);
+            private final HBox box = new HBox(6, compareBtn);
 
             {
                 box.setAlignment(Pos.CENTER);
                 compareBtn.setOnAction(e -> openCompare(row()));
-                approveBtn.setOnAction(e -> approve(row(), ""));
-                rejectBtn.setOnAction(e -> reject(row()));
             }
 
             @Override
@@ -204,44 +223,13 @@ public class PanePendingAuditController {
         try {
             AuditRecordPO full = auditRecordRpcService.queryById(row.getId());
             if (full == null) {
-                ViewUtils.alertForFail("未找到待审核记录");
+                ViewUtils.alertForFail("未找到已审核记录");
                 return;
             }
-            AuditDiffDialog.show(full,
-                    (po, remark) -> doAudit(po, AuditStatusEnum.APPROVED, remark),
-                    (po, remark) -> doAudit(po, AuditStatusEnum.REJECTED, remark));
+            AuditDiffDialog.show(full, null, null);
         } catch (Exception e) {
             e.printStackTrace();
             ViewUtils.alertForFail("打开对比失败: " + e.getMessage());
-        }
-    }
-
-    private void approve(AuditRecordPO row, String remark) {
-        ViewUtils.alertForAsk("确认通过", "确认通过该待审核记录？")
-                .filter(type -> type == javafx.scene.control.ButtonType.OK)
-                .ifPresent(type -> doAudit(row, AuditStatusEnum.APPROVED, remark));
-    }
-
-    private void reject(AuditRecordPO row) {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("驳回原因");
-        dialog.setHeaderText("请填写驳回意见");
-        dialog.setContentText("意见:");
-        dialog.showAndWait().ifPresent(remark -> doAudit(row, AuditStatusEnum.REJECTED, remark));
-    }
-
-    private void doAudit(AuditRecordPO row, AuditStatusEnum status, String remark) {
-        if (row == null) {
-            return;
-        }
-        try {
-            String auditor = globalProps.getOperator() == null ? null : globalProps.getOperator().getUsername();
-            auditRecordRpcService.audit(row.getId(), status.getCode(), StringUtils.defaultString(remark), auditor);
-            ViewUtils.alertForSucess(status == AuditStatusEnum.APPROVED ? "已通过" : "已驳回");
-            queryRecords();
-        } catch (Exception e) {
-            e.printStackTrace();
-            ViewUtils.alertForFail("审核失败: " + e.getMessage());
         }
     }
 }

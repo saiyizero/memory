@@ -44,7 +44,8 @@ public final class MenuCatalog {
                     new Item("transactionLable", "交易标签", "remixB/command-fill.png", "/fxml/pane_lable.xml")
             )),
             new Group("audit", "交易审核", "remixB/file-edit-line.png", List.of(
-                    new Item("pendingAudit", "待审核记录", "remixB/file-edit-fill.png", "/fxml/pane_pending_audit.fxml")
+                    new Item("pendingAudit", "待审核记录", "remixB/file-edit-fill.png", "/fxml/pane_pending_audit.fxml"),
+                    new Item("auditedAudit", "已审核记录", "remixB/file-copy-fill.png", "/fxml/pane_audited_audit.fxml")
             )),
             new Group("table", "库表管理", "remixB/database-2-line.png", List.of(
                     new Item("tableManager", "表结构", "remixB/command-fill.png", "/fxml/pane_table_mng.xml"),

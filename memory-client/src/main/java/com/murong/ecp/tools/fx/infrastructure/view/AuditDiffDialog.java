@@ -51,7 +51,8 @@ public final class AuditDiffDialog {
             return;
         }
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("待审核数据对比");
+        boolean pending = AuditStatusEnum.PENDING.getCode().equals(record.getAuditStatus());
+        dialog.setTitle(pending ? "待审核数据对比" : "已审核数据对比");
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.setResizable(true);
         Window owner = currentWindow();
@@ -98,7 +99,6 @@ public final class AuditDiffDialog {
         dialog.getDialogPane().setContent(root);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
-        boolean pending = AuditStatusEnum.PENDING.getCode().equals(record.getAuditStatus());
         if (pending) {
             ButtonType approveType = new ButtonType("通过", ButtonBar.ButtonData.YES);
             ButtonType rejectType = new ButtonType("驳回", ButtonBar.ButtonData.NO);

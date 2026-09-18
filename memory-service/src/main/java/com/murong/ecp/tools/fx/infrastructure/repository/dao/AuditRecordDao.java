@@ -86,6 +86,15 @@ public class AuditRecordDao extends DaoSupport<AuditRecordPO> {
         appendEq(sql, params, "biz_type", query == null ? null : query.getBizType());
         appendEq(sql, params, "oper_type", query == null ? null : query.getOperType());
         appendEq(sql, params, "audit_status", query == null ? null : query.getAuditStatus());
+        if (query != null && StringUtils.isBlank(query.getAuditStatus()) && Boolean.TRUE.equals(query.getAuditedOnly())) {
+            sql.append(" and audit_status in (?, ?)");
+            params.add(AuditStatusEnum.APPROVED.getCode());
+            params.add(AuditStatusEnum.REJECTED.getCode());
+        }
+        if (query != null && StringUtils.isNotBlank(query.getSubmitBy())) {
+            sql.append(" and submit_by like ?");
+            params.add("%" + query.getSubmitBy().trim() + "%");
+        }
         if (query != null && StringUtils.isNotBlank(query.getBeginTime())) {
             sql.append(" and submit_time >= ?");
             params.add(query.getBeginTime());

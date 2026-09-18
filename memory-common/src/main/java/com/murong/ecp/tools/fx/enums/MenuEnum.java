@@ -18,6 +18,7 @@ public enum MenuEnum {
     TRANSACTION_LABLE("transactionLable", "交易标签"),
     TRANSACTION_REVIEW("transactionReview", "交易评审"),
     PENDING_AUDIT("pendingAudit", "待审核记录"),
+    AUDITED_AUDIT("auditedAudit", "已审核记录"),
     EXE_RECORD("exeRecord", "执行记录"),
     TRANSACTION_TEST("transactionTest", "测试记录"),
     PROJECT_PARAM("projectStructure", "项目结构"),
