@@ -1,10 +1,14 @@
 package com.murong.ecp.tools.fx.infrastructure.repository.dao;
 
+import com.murong.ecp.tools.fx.domain.service.audit.AuditRecordWriter;
 import com.murong.ecp.tools.fx.enums.AuditStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.DaoSupport;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.AuditRecordPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.query.AuditRecordQuery;
+import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -12,6 +16,10 @@ import java.util.List;
 
 @Repository
 public class AuditRecordDao extends DaoSupport<AuditRecordPO> {
+
+    @Autowired
+    @Lazy
+    private AuditRecordWriter auditRecordWriter;
 
     private static final String CREATE_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS audit_record (
@@ -117,7 +125,21 @@ public class AuditRecordDao extends DaoSupport<AuditRecordPO> {
 
     public void audit(String id, String status, String remark, String auditor) {
         ensureTable();
-        String now = com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils.getCurrentTime();
+        AuditRecordPO existing = queryById(id);
+        if (existing == null) {
+            throw new RuntimeException("待审核记录不存在");
+        }
+        if (!AuditStatusEnum.PENDING.getCode().equals(existing.getAuditStatus())) {
+            throw new RuntimeException("该记录已审核，不能重复处理");
+        }
+        if (AuditStatusEnum.APPROVED.getCode().equals(status)) {
+            auditRecordWriter.applyApproved(existing);
+        } else if (AuditStatusEnum.REJECTED.getCode().equals(status)) {
+            auditRecordWriter.discard(existing);
+        } else {
+            throw new RuntimeException("不支持的审核状态: " + status);
+        }
+        String now = MrDateUtils.getCurrentTime();
         AuditRecordPO update = new AuditRecordPO();
         update.setAuditStatus(status);
         update.setAuditBy(auditor);

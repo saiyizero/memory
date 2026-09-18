@@ -57,10 +57,13 @@ public class GenericJdbcDao {
         if (clazz == String.class || clazz == Integer.class || clazz == Long.class) {
             return jdbcTemplate.queryForList(sql, clazz, realParams);
         }
+        List<E> official;
         if (realParams.length == 0) {
-            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(clazz));
+            official = jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(clazz));
+        } else {
+            official = jdbcTemplate.query(sql, realParams, new BeanPropertyRowMapper<>(clazz));
         }
-        return jdbcTemplate.query(sql, realParams, new BeanPropertyRowMapper<>(clazz));
+        return overlayBySql(official, sql, clazz, realParams);
     }
 
     public Integer queryCount(String sql, Object... params) {
@@ -76,7 +79,10 @@ public class GenericJdbcDao {
     }
 
     public void insert(Object entity) {
-        auditInsert(entity);
+        fillAuditDefaults(entity);
+        if (stageInsert(entity)) {
+            return;
+        }
         GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
@@ -118,7 +124,9 @@ public class GenericJdbcDao {
     }
 
     public void delete(Object entity) {
-        auditDelete(entity);
+        if (stageDelete(entity)) {
+            return;
+        }
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -176,7 +184,8 @@ public class GenericJdbcDao {
         if (StringUtils.isNotBlank(orderBy)) {
             sql.append(" ORDER BY ").append(orderBy);
         }
-        return jdbcTemplate.query(sql.toString(), Arrays.copyOf(params, idx), new BeanPropertyRowMapper<>(clazz));
+        List<?> official = jdbcTemplate.query(sql.toString(), Arrays.copyOf(params, idx), new BeanPropertyRowMapper<>(clazz));
+        return overlayList(official, entity);
     }
 
     public Object queryOne(Object entity) {
@@ -191,7 +200,10 @@ public class GenericJdbcDao {
     }
 
     public void updateByOne(Object updateEntity, Object whereEntity) {
-        auditUpdate(updateEntity, whereEntity);
+        fillAuditDefaults(updateEntity);
+        if (stageUpdate(updateEntity, whereEntity)) {
+            return;
+        }
         Class<?> clazz = updateEntity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -248,39 +260,88 @@ public class GenericJdbcDao {
         jdbcTemplate.update(sql, realParams);
     }
 
-    private void auditInsert(Object entity) {
-        if (auditRecordWriter != null && auditRecordWriter.isAuditable(entity)) {
-            auditRecordWriter.onInsert(entity);
-        }
+    private boolean stageInsert(Object entity) {
+        return auditRecordWriter != null && auditRecordWriter.stageInsert(entity);
     }
 
-    private void auditUpdate(Object updateEntity, Object whereEntity) {
+    private boolean stageUpdate(Object updateEntity, Object whereEntity) {
         if (auditRecordWriter == null || !auditRecordWriter.isAuditable(updateEntity)) {
-            return;
+            return false;
         }
         Object oldEntity = null;
+        auditRecordWriter.beginOfficialOnly();
         try {
             oldEntity = queryOne(whereEntity);
         } catch (Exception ignored) {
+        } finally {
+            auditRecordWriter.endOfficialOnly();
         }
-        auditRecordWriter.onUpdate(oldEntity, updateEntity);
+        return auditRecordWriter.stageUpdate(oldEntity, updateEntity);
     }
 
-    private void auditDelete(Object entity) {
+    private boolean stageDelete(Object entity) {
         if (auditRecordWriter == null || !auditRecordWriter.isAuditable(entity)) {
-            return;
+            return false;
         }
         List<?> oldList = List.of();
+        auditRecordWriter.beginOfficialOnly();
         try {
             oldList = queryForList(entity, null);
         } catch (Exception ignored) {
+        } finally {
+            auditRecordWriter.endOfficialOnly();
         }
         if (oldList == null || oldList.isEmpty()) {
-            auditRecordWriter.onDelete(entity);
-            return;
+            return auditRecordWriter.stageDelete(entity);
         }
         for (Object old : oldList) {
-            auditRecordWriter.onDelete(old);
+            auditRecordWriter.stageDelete(old);
+        }
+        return true;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<?> overlayList(List<?> official, Object example) {
+        if (auditRecordWriter == null || example == null) {
+            return official;
+        }
+        return auditRecordWriter.overlay((List<Object>) official, example);
+    }
+
+    private <E> List<E> overlayBySql(List<E> official, String sql, Class<E> clazz, Object... params) {
+        if (auditRecordWriter == null) {
+            return official;
+        }
+        return auditRecordWriter.overlayBySql(official, sql, clazz, params);
+    }
+
+    private void fillAuditDefaults(Object entity) {
+        if (entity == null) {
+            return;
+        }
+        GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
+        if (globalPropts == null) {
+            return;
+        }
+        setIfBlank(entity, "appName", globalPropts.getAppName());
+        if (globalPropts.getOperator() != null) {
+            setIfBlank(entity, "updateBy", globalPropts.getOperator().getUsername());
+        }
+        setIfBlank(entity, "updateTime", MrDateUtils.getCurrentTime());
+    }
+
+    private void setIfBlank(Object entity, String fieldName, String value) {
+        if (StringUtils.isBlank(value)) {
+            return;
+        }
+        try {
+            Field field = entity.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object current = field.get(entity);
+            if (current == null || (current instanceof String str && StringUtils.isBlank(str))) {
+                field.set(entity, value);
+            }
+        } catch (Exception ignored) {
         }
     }
 

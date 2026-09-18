@@ -469,3 +469,45 @@ CREATE INDEX idx_audit_record_status ON mmapi.audit_record USING btree (audit_st
 CREATE INDEX idx_audit_record_biz ON mmapi.audit_record USING btree (biz_type, biz_key);
 CREATE INDEX idx_audit_record_group ON mmapi.audit_record USING btree (group_name, project_name, app_name);
 CREATE INDEX idx_audit_record_submit_time ON mmapi.audit_record USING btree (submit_time);
+
+CREATE TABLE IF NOT EXISTS mmapi.enum_dict_tmp (LIKE mmapi.enum_dict INCLUDING DEFAULTS);
+ALTER TABLE mmapi.enum_dict_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.enum_dict_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_enum_dict_tmp_audit_id ON mmapi.enum_dict_tmp (audit_id);
+ALTER TABLE mmapi.enum_dict_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.base_dict_tmp (LIKE mmapi.base_dict INCLUDING DEFAULTS);
+ALTER TABLE mmapi.base_dict_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.base_dict_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_base_dict_tmp_audit_id ON mmapi.base_dict_tmp (audit_id);
+ALTER TABLE mmapi.base_dict_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.biz_dict_tmp (LIKE mmapi.biz_dict INCLUDING DEFAULTS);
+ALTER TABLE mmapi.biz_dict_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.biz_dict_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_biz_dict_tmp_audit_id ON mmapi.biz_dict_tmp (audit_id);
+ALTER TABLE mmapi.biz_dict_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.biz_msg_info_tmp (LIKE mmapi.biz_msg_info INCLUDING DEFAULTS);
+ALTER TABLE mmapi.biz_msg_info_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.biz_msg_info_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_biz_msg_info_tmp_audit_id ON mmapi.biz_msg_info_tmp (audit_id);
+ALTER TABLE mmapi.biz_msg_info_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.common_class_tmp (LIKE mmapi.common_class INCLUDING DEFAULTS);
+ALTER TABLE mmapi.common_class_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.common_class_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_common_class_tmp_audit_id ON mmapi.common_class_tmp (audit_id);
+ALTER TABLE mmapi.common_class_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.interface_data_tmp (LIKE mmapi.interface_data INCLUDING DEFAULTS);
+ALTER TABLE mmapi.interface_data_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.interface_data_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_interface_data_tmp_audit_id ON mmapi.interface_data_tmp (audit_id);
+ALTER TABLE mmapi.interface_data_tmp REPLICA IDENTITY FULL;
+
+CREATE TABLE IF NOT EXISTS mmapi.table_data_tmp (LIKE mmapi.table_data INCLUDING DEFAULTS);
+ALTER TABLE mmapi.table_data_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
+ALTER TABLE mmapi.table_data_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_table_data_tmp_audit_id ON mmapi.table_data_tmp (audit_id);
+ALTER TABLE mmapi.table_data_tmp REPLICA IDENTITY FULL;

@@ -44,13 +44,7 @@ public class DaoSupport <T> {
     }
 
     public T queryOneBySql(String sql){
-        logWithCaller("[SQL-QUERY] " + sql);
-        try {
-            return jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(getGenericType()));
-        } catch (Exception e) {
-            logWithCaller("[SQL-QUERY-ERROR] " + sql + " | error=" + e.getMessage());
-            return null;
-        }
+        return queryOneBySql(sql, getGenericType());
     }
 
     /**
@@ -71,7 +65,9 @@ public class DaoSupport <T> {
     }
 
     public void delete(T entity) {
-        auditDelete(entity);
+        if (stageDelete(entity)) {
+            return;
+        }
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -112,14 +108,8 @@ public class DaoSupport <T> {
     }
 
     public <E> E queryOneBySql(String sql, Class<E> clazz) {
-        logWithCaller("[SQL-QUERY] " + sql);
-        List<E> list;
-        if (clazz == String.class) {
-            list = (List<E>) jdbcTemplate.queryForList(sql, String.class);
-        } else {
-            list = jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(clazz));
-        }
-        if (list.isEmpty()) {
+        List<E> list = queryListBySql(sql, clazz);
+        if (list == null || list.isEmpty()) {
             return null;
         }
         if (list.size() > 1) {
@@ -133,9 +123,9 @@ public class DaoSupport <T> {
         logWithCaller("[SQL-QUERY] " + sql);
         if (clazz == String.class) {
             return jdbcTemplate.queryForList(sql, clazz);
-        } else {
-            return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(clazz));
         }
+        List<E> official = jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(clazz));
+        return overlayBySql(official, sql, clazz);
     }
 
     public T queryOne(T entity) {
@@ -180,7 +170,8 @@ public class DaoSupport <T> {
             sql.append(" ORDER BY " + orderBy);
         }
         logWithCaller("[SQL-QUERY] " + sql + " | params=" + java.util.Arrays.toString(Arrays.copyOf(params, idx)));
-        return (List<T>) jdbcTemplate.query(sql.toString(), Arrays.copyOf(params, idx), new BeanPropertyRowMapper<>(clazz));
+        List<T> official = (List<T>) jdbcTemplate.query(sql.toString(), Arrays.copyOf(params, idx), new BeanPropertyRowMapper<>(clazz));
+        return overlayList(official, entity);
     }
 
     public List<T> queryForList(T entity) {
@@ -188,7 +179,10 @@ public class DaoSupport <T> {
     }
 
     public void insert(T entity) {
-        auditInsert(entity);
+        fillAuditDefaults(entity);
+        if (stageInsert(entity)) {
+            return;
+        }
         GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
@@ -244,7 +238,10 @@ public class DaoSupport <T> {
     }
 
     public void updateByOne(T updateEntity, T whereEntity) {
-        auditUpdate(updateEntity, whereEntity);
+        fillAuditDefaults(updateEntity);
+        if (stageUpdate(updateEntity, whereEntity)) {
+            return;
+        }
         Class<?> clazz = updateEntity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -317,7 +314,8 @@ public class DaoSupport <T> {
         if (clazz == String.class || clazz == Integer.class || clazz == Long.class) {
             return jdbcTemplate.queryForList(sql, clazz, params);
         }
-        return jdbcTemplate.query(sql, params, new BeanPropertyRowMapper<>(clazz));
+        List<E> official = jdbcTemplate.query(sql, params, new BeanPropertyRowMapper<>(clazz));
+        return overlayBySql(official, sql, clazz, params);
     }
 
     public Integer queryCount(String sql, Object... params) {
@@ -334,45 +332,90 @@ public class DaoSupport <T> {
         return jdbcTemplate.queryForList(sql, params);
     }
 
-    private void auditInsert(T entity) {
-        if (auditRecordWriter != null && auditRecordWriter.isAuditable(entity)) {
-            auditRecordWriter.onInsert(entity);
-        }
+    private boolean stageInsert(T entity) {
+        return auditRecordWriter != null && auditRecordWriter.stageInsert(entity);
     }
 
-    private void auditUpdate(T updateEntity, T whereEntity) {
+    private boolean stageUpdate(T updateEntity, T whereEntity) {
         if (auditRecordWriter == null || !auditRecordWriter.isAuditable(updateEntity)) {
-            return;
+            return false;
         }
         T oldEntity = null;
+        auditRecordWriter.beginOfficialOnly();
         try {
             oldEntity = queryOne(whereEntity);
         } catch (Exception ignored) {
+        } finally {
+            auditRecordWriter.endOfficialOnly();
         }
-        auditRecordWriter.onUpdate(oldEntity, updateEntity);
+        return auditRecordWriter.stageUpdate(oldEntity, updateEntity);
     }
 
-    private void auditDelete(T entity) {
+    private boolean stageDelete(T entity) {
         if (auditRecordWriter == null || !auditRecordWriter.isAuditable(entity)) {
-            return;
+            return false;
         }
         List<T> oldList = List.of();
+        auditRecordWriter.beginOfficialOnly();
         try {
             oldList = queryForList(entity);
         } catch (Exception ignored) {
+        } finally {
+            auditRecordWriter.endOfficialOnly();
         }
         if (oldList == null || oldList.isEmpty()) {
-            auditRecordWriter.onDelete(entity);
-            return;
+            return auditRecordWriter.stageDelete(entity);
         }
         for (T old : oldList) {
-            auditRecordWriter.onDelete(old);
+            auditRecordWriter.stageDelete(old);
+        }
+        return true;
+    }
+
+    private List<T> overlayList(List<T> official, T example) {
+        if (auditRecordWriter == null) {
+            return official;
+        }
+        return auditRecordWriter.overlay(official, example);
+    }
+
+    private <E> List<E> overlayBySql(List<E> official, String sql, Class<E> clazz, Object... params) {
+        if (auditRecordWriter == null) {
+            return official;
+        }
+        return auditRecordWriter.overlayBySql(official, sql, clazz, params);
+    }
+
+    private void fillAuditDefaults(T entity) {
+        if (entity == null) {
+            return;
+        }
+        GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
+        if (globalPropts == null) {
+            return;
+        }
+        setIfBlank(entity, "appName", globalPropts.getAppName());
+        if (globalPropts.getOperator() != null) {
+            setIfBlank(entity, "updateBy", globalPropts.getOperator().getUsername());
+        }
+        setIfBlank(entity, "updateTime", MrDateUtils.getCurrentTime());
+    }
+
+    private void setIfBlank(T entity, String fieldName, String value) {
+        if (StringUtils.isBlank(value)) {
+            return;
+        }
+        try {
+            Field field = entity.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object current = field.get(entity);
+            if (current == null || (current instanceof String str && StringUtils.isBlank(str))) {
+                field.set(entity, value);
+            }
+        } catch (Exception ignored) {
         }
     }
 
-    /**
-     * 驼峰转下划线
-     */
     private String camelToSnake(String str) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {

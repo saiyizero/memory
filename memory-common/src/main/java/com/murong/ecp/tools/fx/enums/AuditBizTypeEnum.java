@@ -1,5 +1,6 @@
 package com.murong.ecp.tools.fx.enums;
 
+import com.murong.ecp.tools.fx.infrastructure.annotation.JTable;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BaseDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
@@ -38,6 +39,30 @@ public enum AuditBizTypeEnum {
 
     public Class<?> getEntityClass() {
         return entityClass;
+    }
+
+    public String officialTable() {
+        JTable table = entityClass.getAnnotation(JTable.class);
+        if (table == null || StringUtils.isBlank(table.name())) {
+            throw new IllegalStateException("待审核对象缺少 JTable: " + entityClass.getName());
+        }
+        return table.name();
+    }
+
+    public String tmpTable() {
+        return officialTable() + "_tmp";
+    }
+
+    public static AuditBizTypeEnum fromClass(Class<?> clazz) {
+        if (clazz == null) {
+            return null;
+        }
+        for (AuditBizTypeEnum type : values()) {
+            if (type.entityClass.isAssignableFrom(clazz)) {
+                return type;
+            }
+        }
+        return null;
     }
 
     public static AuditBizTypeEnum getByCode(String code) {
