@@ -678,7 +678,7 @@ public class PaneBizDictController {
             }
             
             // 设置状态为待审核
-            newBizDict.setStatus(DataStatusEnum.PENDING.getCode());
+            newBizDict.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             try {
                 // 保存到数据库
@@ -798,6 +798,8 @@ public class PaneBizDictController {
         // 创建状态选择下拉框
         ComboBox<String> statusComboBox = new ComboBox<>();
         statusComboBox.getItems().addAll(
+            DataStatusEnum.WAIT_AUDIT.getDesc(),
+            DataStatusEnum.NORMAL.getDesc(),
             DataStatusEnum.PENDING.getDesc(),
             DataStatusEnum.REVIEW.getDesc(),
             DataStatusEnum.COMPLETED.getDesc()
@@ -815,15 +817,15 @@ public class PaneBizDictController {
             if (statusEnum != null) {
                 statusComboBox.setValue(statusEnum.getDesc());
             } else {
-                statusComboBox.setValue(DataStatusEnum.PENDING.getDesc());
+                statusComboBox.setValue(DataStatusEnum.WAIT_AUDIT.getDesc());
             }
         } else {
-            statusComboBox.setValue(DataStatusEnum.PENDING.getDesc());
+            statusComboBox.setValue(DataStatusEnum.WAIT_AUDIT.getDesc());
         }
         
         // 确保状态下拉框有默认值
         if (statusComboBox.getValue() == null) {
-            statusComboBox.setValue(DataStatusEnum.PENDING.getDesc());
+            statusComboBox.setValue(DataStatusEnum.WAIT_AUDIT.getDesc());
         }
         
         // 创建枚举名称和引用字段
@@ -1745,7 +1747,7 @@ public class PaneBizDictController {
             }
             
             // 设置状态为待审核
-            bizDict.setStatus(DataStatusEnum.PENDING.getCode());
+            bizDict.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             // 读取各列数据（按照新的列顺序）
             bizDict.setAppName(getCellValueAsString(row.getCell(0))); // 归属系统
@@ -2221,6 +2223,8 @@ public class PaneBizDictController {
         
         // 状态列 - 使用下拉选择
         ObservableList<String> statusOptions = FXCollections.observableArrayList(
+            DataStatusEnum.WAIT_AUDIT.getDesc(),
+            DataStatusEnum.NORMAL.getDesc(),
             DataStatusEnum.PENDING.getDesc(),
             DataStatusEnum.REVIEW.getDesc(),
             DataStatusEnum.COMPLETED.getDesc()

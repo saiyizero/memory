@@ -453,7 +453,7 @@ public class PaneBaseDictController {
             newBaseDict.setCommentCn(commentCnField.getText().trim());
             
             // 设置状态为待审核
-            newBaseDict.setStatus(DataStatusEnum.PENDING.getCode());
+            newBaseDict.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             try {
                 // 保存到数据库
@@ -697,6 +697,8 @@ public class PaneBaseDictController {
         
         // 状态列 - 使用下拉选择
         ObservableList<String> statusOptions = FXCollections.observableArrayList(
+            DataStatusEnum.WAIT_AUDIT.getDesc(),
+            DataStatusEnum.NORMAL.getDesc(),
             DataStatusEnum.PENDING.getDesc(),
             DataStatusEnum.REVIEW.getDesc(),
             DataStatusEnum.COMPLETED.getDesc()
@@ -899,7 +901,7 @@ public class PaneBaseDictController {
         
         try {
             // 设置状态为待审核
-            baseDict.setStatus(DataStatusEnum.PENDING.getCode());
+            baseDict.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             // 读取各列数据
             baseDict.setNameSnake(getCellValueAsString(row.getCell(0))); // 字段名

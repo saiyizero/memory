@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.murong.ecp.tools.fx.enums.AuditBizTypeEnum;
 import com.murong.ecp.tools.fx.enums.AuditOperTypeEnum;
 import com.murong.ecp.tools.fx.enums.AuditStatusEnum;
+import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.UuidTypEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.GenericJdbcDao;
 import com.murong.ecp.tools.fx.infrastructure.repository.dao.AuditRecordDao;
@@ -85,6 +86,7 @@ public class AuditRecordWriter {
         if (!isAuditable(entity)) {
             return false;
         }
+        markDataStatus(entity, DataStatusEnum.WAIT_AUDIT);
         register(null, entity, false);
         return false;
     }
@@ -93,7 +95,10 @@ public class AuditRecordWriter {
         if (!isAuditable(updateEntity) && !isAuditable(oldEntity)) {
             return false;
         }
-        register(oldEntity, merge(oldEntity, updateEntity), false);
+        Object merged = merge(oldEntity, updateEntity);
+        markDataStatus(merged, DataStatusEnum.WAIT_AUDIT);
+        markDataStatus(updateEntity, DataStatusEnum.WAIT_AUDIT);
+        register(oldEntity, merged, false);
         return false;
     }
 
@@ -129,6 +134,7 @@ public class AuditRecordWriter {
                 if (newEntity == null) {
                     throw new RuntimeException("待审核新数据为空，无法写入正式表");
                 }
+                markDataStatus(newEntity, DataStatusEnum.NORMAL);
                 upsertOfficial(newEntity, bizType);
             }
             deleteTmpQuietly(record.getId(), bizType);
@@ -164,6 +170,7 @@ public class AuditRecordWriter {
                     genericJdbcDao.delete(bizType.newPkWhere(added));
                 }
             } else if (backup != null) {
+                markDataStatus(backup, DataStatusEnum.NORMAL);
                 upsertOfficial(backup, bizType);
             }
             deleteTmpQuietly(record.getId(), bizType);
@@ -357,6 +364,20 @@ public class AuditRecordWriter {
             auditStagingStore.delete(auditId, bizType);
         } catch (Exception e) {
             System.err.println("清理临时表失败: " + e.getMessage());
+        }
+    }
+
+    private void markDataStatus(Object entity, DataStatusEnum status) {
+        if (entity == null || status == null) {
+            return;
+        }
+        try {
+            Field field = entity.getClass().getDeclaredField("status");
+            field.setAccessible(true);
+            field.set(entity, status.getCode());
+        } catch (NoSuchFieldException ignored) {
+        } catch (Exception e) {
+            throw new RuntimeException("更新数据状态失败: " + e.getMessage(), e);
         }
     }
 }
