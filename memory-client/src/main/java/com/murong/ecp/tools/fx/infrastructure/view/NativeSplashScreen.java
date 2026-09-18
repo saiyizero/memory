@@ -25,6 +25,7 @@ public class NativeSplashScreen {
     private static final String VERSION = "v2.0.3";
     
     public static void show() {
+        MacDockIcon.apply();
         try {
             // 设置系统外观
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

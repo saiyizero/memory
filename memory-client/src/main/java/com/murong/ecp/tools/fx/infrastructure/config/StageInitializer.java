@@ -3,9 +3,11 @@ package com.murong.ecp.tools.fx.infrastructure.config;
 import com.murong.ecp.tools.fx.domain.service.auth.LoginService;
 import com.murong.ecp.tools.fx.infrastructure.view.NativeSplashScreen;
 import com.murong.ecp.tools.fx.controller.MainController;
+import com.murong.ecp.tools.fx.infrastructure.view.MacDockIcon;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -72,6 +74,8 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             stage.setWidth(1380);
             stage.setHeight(700);
             stage.centerOnScreen();
+            applyStageIcon(stage);
+            MacDockIcon.apply();
             long stageConfigEndTime = System.currentTimeMillis();
             System.out.println("[界面] Stage属性配置完成，耗时: " + (stageConfigEndTime - stageConfigStartTime) + "ms");
             
@@ -104,6 +108,7 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             System.out.println("[界面] 开始显示主界面...");
             
             stage.show();
+            MacDockIcon.apply();
             long showEndTime = System.currentTimeMillis();
             System.out.println("[界面] 主界面显示完成，耗时: " + (showEndTime - showStartTime) + "ms");
             
@@ -117,6 +122,17 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             System.err.println("[界面] 主界面初始化失败: " + e.getMessage());
             NativeSplashScreen.updateStatus("主界面初始化失败: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private void applyStageIcon(Stage stage) {
+        try {
+            var iconStream = getClass().getResourceAsStream("/image/start-logo.png");
+            if (iconStream != null) {
+                stage.getIcons().setAll(new Image(iconStream));
+            }
+        } catch (Exception e) {
+            System.err.println("[界面] 设置窗口图标失败: " + e.getMessage());
         }
     }
 } 

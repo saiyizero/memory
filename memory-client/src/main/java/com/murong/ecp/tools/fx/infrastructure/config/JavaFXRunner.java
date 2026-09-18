@@ -6,6 +6,7 @@ import com.murong.ecp.tools.fx.domain.service.auth.LoginService;
 import com.murong.ecp.tools.fx.infrastructure.license.LicenseValidator;
 
 import com.murong.ecp.tools.fx.infrastructure.view.LoginDialog;
+import com.murong.ecp.tools.fx.infrastructure.view.MacDockIcon;
 import com.murong.ecp.tools.fx.infrastructure.view.NativeSplashScreen;
 import com.murong.ecp.tools.fx.infrastructure.view.DatabaseConfigDialog;
 import javafx.application.Application;
@@ -119,6 +120,7 @@ public class JavaFXRunner extends Application {
             return;
         }
         
+        MacDockIcon.apply();
         NativeSplashScreen.updateStatus("正在启动主界面...");
         
         // 在启动主界面之前验证许可证

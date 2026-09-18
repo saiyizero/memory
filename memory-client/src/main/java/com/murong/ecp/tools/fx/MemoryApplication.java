@@ -1,6 +1,7 @@
 package com.murong.ecp.tools.fx;
 
 import com.murong.ecp.tools.fx.infrastructure.config.JavaFXRunner;
+import com.murong.ecp.tools.fx.infrastructure.view.MacDockIcon;
 import com.murong.ecp.tools.fx.infrastructure.view.NativeSplashScreen;
 import javafx.application.Application;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,6 +9,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MemoryApplication {
     public static void main(String[] args) {
+        System.setProperty("apple.awt.application.name", "Memory");
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        MacDockIcon.apply();
         // 在JavaFX启动之前就显示原生启动画面
         System.out.println("[主程序] 开始启动Memory应用...");
         NativeSplashScreen.show();

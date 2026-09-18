@@ -122,6 +122,35 @@ start_service() {
   cmd_wait
 }
 
+prepare_dock_icon() {
+  local src="$1"
+  local dest="$2"
+  if [[ ! -f "${src}" ]]; then
+    return 1
+  fi
+  if ! command -v sips >/dev/null 2>&1 || ! command -v iconutil >/dev/null 2>&1; then
+    cp "${src}" "${dest}"
+    return 0
+  fi
+  local work="${RUN_DIR}/Memory.iconset"
+  rm -rf "${work}"
+  mkdir -p "${work}"
+  sips -z 16 16 "${src}" --out "${work}/icon_16x16.png" >/dev/null
+  sips -z 32 32 "${src}" --out "${work}/icon_16x16@2x.png" >/dev/null
+  sips -z 32 32 "${src}" --out "${work}/icon_32x32.png" >/dev/null
+  sips -z 64 64 "${src}" --out "${work}/icon_32x32@2x.png" >/dev/null
+  sips -z 128 128 "${src}" --out "${work}/icon_128x128.png" >/dev/null
+  sips -z 256 256 "${src}" --out "${work}/icon_128x128@2x.png" >/dev/null
+  sips -z 256 256 "${src}" --out "${work}/icon_256x256.png" >/dev/null
+  sips -z 512 512 "${src}" --out "${work}/icon_256x256@2x.png" >/dev/null
+  sips -z 512 512 "${src}" --out "${work}/icon_512x512.png" >/dev/null
+  sips -z 1024 1024 "${src}" --out "${work}/icon_512x512@2x.png" >/dev/null
+  if iconutil -c icns "${work}" -o "${dest}" >/dev/null 2>&1 && [[ -f "${dest}" ]]; then
+    return 0
+  fi
+  cp "${src}" "${dest}"
+}
+
 start_client_fg() {
   need_cmd mvn
   if [[ -n "$(pids_by_pattern "${CLIENT_MAIN}")" ]]; then
@@ -129,8 +158,20 @@ start_client_fg() {
     log "memory-client 已在运行，不再重复启动"
     return 0
   fi
+  local client_icon="${ROOT_DIR}/memory-client/src/main/resources/image/start-logo.png"
+  local client_jvm_args="-Dprism.order=sw -Djavafx.platform=mac -Dprism.forceGPU=false -Dprism.allowSoftwareGL=true -Dapple.awt.application.name=Memory"
+  # -Xdock 只能作为 java 命令行参数；放进 JAVA_TOOL_OPTIONS 会被 JDK 判为非法选项
+  if [[ "$(uname -s)" == "Darwin" && -f "${client_icon}" ]]; then
+    local dock_icon="${RUN_DIR}/Memory.icns"
+    prepare_dock_icon "${client_icon}" "${dock_icon}"
+    client_jvm_args="-Xdock:name=Memory -Xdock:icon=${dock_icon} ${client_jvm_args}"
+    log "Dock 图标: ${dock_icon}"
+  fi
   log "启动 memory-client ..."
-  mvn -f "${ROOT_DIR}/memory-client/pom.xml" -DskipTests spring-boot:run
+  mvn -f "${ROOT_DIR}/memory-client/pom.xml" -DskipTests \
+    -Dspring-boot.run.fork=true \
+    "-Dspring-boot.run.jvmArguments=${client_jvm_args}" \
+    spring-boot:run
 }
 
 cmd_start() {
