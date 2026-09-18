@@ -292,12 +292,13 @@ public class GenericJdbcDao {
             auditRecordWriter.endOfficialOnly();
         }
         if (oldList == null || oldList.isEmpty()) {
-            return auditRecordWriter.stageDelete(entity);
+            auditRecordWriter.stageDelete(entity);
+            return false;
         }
         for (Object old : oldList) {
             auditRecordWriter.stageDelete(old);
         }
-        return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")

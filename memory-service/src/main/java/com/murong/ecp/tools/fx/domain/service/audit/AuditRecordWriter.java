@@ -44,10 +44,11 @@ public class AuditRecordWriter {
         return entity != null && AuditBizTypeEnum.fromEntity(entity) != null && !Boolean.TRUE.equals(SKIP.get());
     }
 
+    /**
+     * tmp 表保存的是正式表修改前的快照，查询正式表时不能再叠加 tmp。
+     */
     public boolean shouldOverlay(Class<?> clazz) {
-        return AuditBizTypeEnum.fromClass(clazz) != null
-                && !Boolean.TRUE.equals(SKIP.get())
-                && !Boolean.TRUE.equals(OFFICIAL_ONLY.get());
+        return false;
     }
 
     public <E> List<E> overlay(List<E> official, E example) {
@@ -85,7 +86,7 @@ public class AuditRecordWriter {
             return false;
         }
         register(null, entity, false);
-        return true;
+        return false;
     }
 
     public boolean stageUpdate(Object oldEntity, Object updateEntity) {
@@ -93,7 +94,7 @@ public class AuditRecordWriter {
             return false;
         }
         register(oldEntity, merge(oldEntity, updateEntity), false);
-        return true;
+        return false;
     }
 
     public boolean stageDelete(Object entity) {
@@ -101,7 +102,7 @@ public class AuditRecordWriter {
             return false;
         }
         register(entity, null, true);
-        return true;
+        return false;
     }
 
     public void applyApproved(AuditRecordPO record) {
@@ -117,35 +118,20 @@ public class AuditRecordWriter {
         try {
             AuditOperTypeEnum operType = AuditOperTypeEnum.getByCode(record.getOperType());
             if (operType == AuditOperTypeEnum.DELETE) {
-                Object oldEntity = fromJson(record.getOldData(), bizType.getEntityClass());
+                Object oldEntity = firstNonNull(
+                        auditStagingStore.load(record.getId(), bizType),
+                        fromJson(record.getOldData(), bizType.getEntityClass()));
                 if (oldEntity != null) {
-                    genericJdbcDao.delete(oldEntity);
+                    genericJdbcDao.delete(bizType.newPkWhere(oldEntity));
                 }
             } else {
                 Object newEntity = fromJson(record.getNewData(), bizType.getEntityClass());
                 if (newEntity == null) {
                     throw new RuntimeException("待审核新数据为空，无法写入正式表");
                 }
-                Object oldEntity = fromJson(record.getOldData(), bizType.getEntityClass());
-                Object where = oldEntity != null ? oldEntity : newEntity;
-                Object existing = null;
-                try {
-                    existing = genericJdbcDao.queryOne(where);
-                } catch (Exception ignored) {
-                }
-                if (existing == null && oldEntity != null) {
-                    try {
-                        existing = genericJdbcDao.queryOne(newEntity);
-                    } catch (Exception ignored) {
-                    }
-                }
-                if (existing == null) {
-                    genericJdbcDao.insert(newEntity);
-                } else {
-                    genericJdbcDao.updateByOne(newEntity, existing);
-                }
+                upsertOfficial(newEntity, bizType);
             }
-            auditStagingStore.delete(record.getId(), bizType);
+            deleteTmpQuietly(record.getId(), bizType);
         } finally {
             SKIP.set(Boolean.FALSE);
             OFFICIAL_ONLY.set(Boolean.FALSE);
@@ -153,14 +139,51 @@ public class AuditRecordWriter {
     }
 
     public void discard(AuditRecordPO record) {
+        restoreRejected(record);
+    }
+
+    public void restoreRejected(AuditRecordPO record) {
         if (record == null) {
             return;
         }
         AuditBizTypeEnum bizType = AuditBizTypeEnum.getByCode(record.getBizType());
-        if (bizType != null) {
-            auditStagingStore.delete(record.getId(), bizType);
-        } else {
+        if (bizType == null) {
             auditStagingStore.delete(record.getId());
+            return;
+        }
+        SKIP.set(Boolean.TRUE);
+        OFFICIAL_ONLY.set(Boolean.TRUE);
+        try {
+            AuditOperTypeEnum operType = AuditOperTypeEnum.getByCode(record.getOperType());
+            Object backup = firstNonNull(
+                    auditStagingStore.load(record.getId(), bizType),
+                    fromJson(record.getOldData(), bizType.getEntityClass()));
+            if (operType == AuditOperTypeEnum.ADD) {
+                Object added = firstNonNull(backup, fromJson(record.getNewData(), bizType.getEntityClass()));
+                if (added != null) {
+                    genericJdbcDao.delete(bizType.newPkWhere(added));
+                }
+            } else if (backup != null) {
+                upsertOfficial(backup, bizType);
+            }
+            deleteTmpQuietly(record.getId(), bizType);
+        } finally {
+            SKIP.set(Boolean.FALSE);
+            OFFICIAL_ONLY.set(Boolean.FALSE);
+        }
+    }
+
+    private void upsertOfficial(Object entity, AuditBizTypeEnum bizType) {
+        Object pk = bizType.newPkWhere(entity);
+        Object existing = null;
+        try {
+            existing = genericJdbcDao.queryOne(pk);
+        } catch (Exception ignored) {
+        }
+        if (existing == null) {
+            genericJdbcDao.insert(entity);
+        } else {
+            genericJdbcDao.updateByOne(entity, pk);
         }
     }
 
@@ -195,7 +218,7 @@ public class AuditRecordWriter {
             String now = MrDateUtils.getCurrentTime();
             String operator = currentUsername();
             AuditOperTypeEnum operType = resolveOperType(effectiveOld, newJson);
-            Object tmpEntity = delete ? oldEntity : newEntity;
+            Object tmpEntity = oldEntity != null ? oldEntity : newEntity;
             if (pending == null) {
                 AuditRecordPO po = new AuditRecordPO();
                 po.setId(MrStringUtils.generateId(UuidTypEnum.AUDIT_REC));
@@ -230,7 +253,7 @@ public class AuditRecordWriter {
             AuditRecordPO where = new AuditRecordPO();
             where.setId(pending.getId());
             auditRecordDao.updateByOne(update, where);
-            if (tmpEntity != null) {
+            if (tmpEntity != null && auditStagingStore.load(pending.getId(), bizType) == null) {
                 auditStagingStore.upsert(pending.getId(), operType, tmpEntity);
             }
         } catch (Exception e) {
@@ -323,5 +346,17 @@ public class AuditRecordWriter {
 
     private String firstNonBlank(String first, String second) {
         return StringUtils.isNotBlank(first) ? first : second;
+    }
+
+    private Object firstNonNull(Object first, Object second) {
+        return first != null ? first : second;
+    }
+
+    private void deleteTmpQuietly(String auditId, AuditBizTypeEnum bizType) {
+        try {
+            auditStagingStore.delete(auditId, bizType);
+        } catch (Exception e) {
+            System.err.println("清理临时表失败: " + e.getMessage());
+        }
     }
 }

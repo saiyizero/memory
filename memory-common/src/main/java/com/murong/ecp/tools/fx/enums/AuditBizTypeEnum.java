@@ -10,6 +10,8 @@ import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.TableDataPO;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Field;
+
 public enum AuditBizTypeEnum {
     ENUM("ENUM", "枚举维护", EnumDictPO.class),
     BASE_DICT("BASE_DICT", "基础字典维护", BaseDictPO.class),
@@ -51,6 +53,37 @@ public enum AuditBizTypeEnum {
 
     public String tmpTable() {
         return officialTable() + "_tmp";
+    }
+
+    public String[] pkFields() {
+        return switch (this) {
+            case ENUM -> new String[]{"groupName", "projectName", "appName", "enumNme", "enumRef", "enumVal"};
+            case BASE_DICT -> new String[]{"nameSnake"};
+            case BIZ_DICT -> new String[]{"groupName", "projectName", "appName", "nameCamel"};
+            case INFO_CODE -> new String[]{"groupName", "projectName", "appName", "msgClass", "msgRef", "msgKey"};
+            case COMMON_OBJ -> new String[]{"groupName", "appName", "className", "classType", "classPath"};
+            case INTERFACE -> new String[]{"groupName", "projectName", "appName", "className", "transName"};
+            case TABLE -> new String[]{"groupName", "projectName", "appName", "tableNameCamel"};
+        };
+    }
+
+    public Object newPkWhere(Object entity) {
+        if (entity == null) {
+            return null;
+        }
+        try {
+            Object where = entityClass.getDeclaredConstructor().newInstance();
+            for (String name : pkFields()) {
+                Field src = findField(entity.getClass(), name);
+                Field dst = findField(where.getClass(), name);
+                src.setAccessible(true);
+                dst.setAccessible(true);
+                dst.set(where, src.get(entity));
+            }
+            return where;
+        } catch (Exception e) {
+            throw new RuntimeException("构造主键条件失败: " + e.getMessage(), e);
+        }
     }
 
     public static AuditBizTypeEnum fromClass(Class<?> clazz) {
@@ -223,5 +256,16 @@ public enum AuditBizTypeEnum {
             }
         }
         return "";
+    }
+
+    private static Field findField(Class<?> clazz, String name) throws NoSuchFieldException {
+        try {
+            return clazz.getDeclaredField(name);
+        } catch (NoSuchFieldException e) {
+            if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
+                return findField(clazz.getSuperclass(), name);
+            }
+            throw e;
+        }
     }
 }

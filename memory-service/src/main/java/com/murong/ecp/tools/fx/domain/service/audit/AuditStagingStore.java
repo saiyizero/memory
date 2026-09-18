@@ -15,8 +15,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuditStagingStore {
@@ -26,6 +29,7 @@ public class AuditStagingStore {
     private JdbcTemplate jdbcTemplate;
 
     private volatile boolean tablesReady;
+    private final Map<String, Set<String>> columnCache = new ConcurrentHashMap<>();
 
     public void ensureTables() {
         if (tablesReady) {
@@ -57,32 +61,71 @@ public class AuditStagingStore {
             return;
         }
         ensureTables();
+        Set<String> tableCols = tableColumns(type.tmpTable());
         List<String> columns = new ArrayList<>();
-        List<Object> params = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
         for (Field field : persistableFields(entity.getClass())) {
-            Object value = readValue(entity, field);
-            if (value == null) {
+            String column = camelToSnake(field.getName());
+            if (!tableCols.contains(column)) {
                 continue;
             }
-            columns.add(camelToSnake(field.getName()));
-            params.add(unwrap(value));
+            columns.add(column);
+            values.add(unwrap(readValue(entity, field)));
         }
-        columns.add("audit_id");
-        params.add(auditId);
-        columns.add("oper_type");
-        params.add(operType.getCode());
-        String placeholders = String.join(",", columns.stream().map(c -> "?").toList());
-        StringBuilder sql = new StringBuilder("INSERT INTO ");
-        sql.append(type.tmpTable()).append(" (").append(String.join(",", columns)).append(") VALUES (").append(placeholders).append(")");
-        sql.append(" ON CONFLICT (audit_id) DO UPDATE SET ");
-        List<String> sets = new ArrayList<>();
-        for (String column : columns) {
-            if (!"audit_id".equals(column)) {
-                sets.add(column + " = EXCLUDED." + column);
+        if (columns.isEmpty()) {
+            throw new RuntimeException("临时表 " + type.tmpTable() + " 没有可写入字段");
+        }
+        StringBuilder updateSql = new StringBuilder("UPDATE ").append(type.tmpTable()).append(" SET ");
+        List<Object> updateParams = new ArrayList<>();
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) {
+                updateSql.append(", ");
             }
+            updateSql.append(columns.get(i)).append(" = ?");
+            updateParams.add(values.get(i));
         }
-        sql.append(String.join(", ", sets));
-        jdbcTemplate.update(sql.toString(), params.toArray());
+        updateSql.append(", oper_type = ? WHERE audit_id = ?");
+        updateParams.add(operType.getCode());
+        updateParams.add(auditId);
+        int updated = jdbcTemplate.update(updateSql.toString(), updateParams.toArray());
+        if (updated > 0) {
+            return;
+        }
+        List<String> insertCols = new ArrayList<>();
+        List<Object> insertParams = new ArrayList<>();
+        for (int i = 0; i < columns.size(); i++) {
+            if (values.get(i) == null) {
+                continue;
+            }
+            insertCols.add(columns.get(i));
+            insertParams.add(values.get(i));
+        }
+        insertCols.add("audit_id");
+        insertParams.add(auditId);
+        insertCols.add("oper_type");
+        insertParams.add(operType.getCode());
+        String placeholders = String.join(",", insertCols.stream().map(c -> "?").toList());
+        String insertSql = "INSERT INTO " + type.tmpTable() + " (" + String.join(",", insertCols) + ") VALUES (" + placeholders + ")";
+        jdbcTemplate.update(insertSql, insertParams.toArray());
+    }
+
+    public <E> E load(String auditId, AuditBizTypeEnum type) {
+        if (StringUtils.isBlank(auditId) || type == null) {
+            return null;
+        }
+        ensureTables();
+        @SuppressWarnings("unchecked")
+        Class<E> clazz = (Class<E>) type.getEntityClass();
+        try {
+            List<E> list = jdbcTemplate.query(
+                    "SELECT * FROM " + type.tmpTable() + " WHERE audit_id = ?",
+                    new BeanPropertyRowMapper<>(clazz),
+                    auditId);
+            return list == null || list.isEmpty() ? null : list.get(0);
+        } catch (Exception e) {
+            System.err.println("读取临时表失败: " + e.getMessage());
+            return null;
+        }
     }
 
     public void delete(String auditId) {
@@ -145,6 +188,22 @@ public class AuditStagingStore {
         } catch (Exception e) {
             return official;
         }
+    }
+
+    private Set<String> tableColumns(String table) {
+        return columnCache.computeIfAbsent(table, name -> {
+            List<String> cols = jdbcTemplate.queryForList(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ?",
+                    String.class,
+                    name);
+            Set<String> set = new LinkedHashSet<>();
+            for (String col : cols) {
+                if (col != null) {
+                    set.add(col.toLowerCase());
+                }
+            }
+            return set;
+        });
     }
 
     private <E> List<TmpRow<E>> queryTmp(AuditBizTypeEnum type, Class<E> clazz, E example) {

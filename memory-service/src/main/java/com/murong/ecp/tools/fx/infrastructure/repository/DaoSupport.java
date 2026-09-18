@@ -364,12 +364,13 @@ public class DaoSupport <T> {
             auditRecordWriter.endOfficialOnly();
         }
         if (oldList == null || oldList.isEmpty()) {
-            return auditRecordWriter.stageDelete(entity);
+            auditRecordWriter.stageDelete(entity);
+            return false;
         }
         for (T old : oldList) {
             auditRecordWriter.stageDelete(old);
         }
-        return true;
+        return false;
     }
 
     private List<T> overlayList(List<T> official, T example) {
