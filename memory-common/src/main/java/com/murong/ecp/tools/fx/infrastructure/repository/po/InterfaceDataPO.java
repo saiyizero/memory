@@ -30,6 +30,7 @@ public class InterfaceDataPO {
     private String updateBy;         // 更新人
     private String updateTime;       // 更新时间
     private String appName;          // 应用名称
+    private String status;           // 数据状态
     private String lableName;        // 标签名称
     private String associatEntity;   // 关联实体
     private String associatEnum;     // 关联枚举

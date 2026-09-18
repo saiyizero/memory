@@ -30,7 +30,7 @@
             <TableColumn fx:id="labenameColumn" prefWidth="120.0" text="标签名"/>
             <TableColumn fx:id="transCommentZhColumn" prefWidth="160.0" text="中文描述"/>
             <TableColumn fx:id="transCommentEnColumn" prefWidth="180.0" text="英文描述"/>
-            <TableColumn fx:id="statusColumn" prefWidth="60.0" text="接口状态"/>
+            <TableColumn fx:id="statusColumn" prefWidth="80.0" text="状态"/>
             <TableColumn fx:id="actionColumn" prefWidth="80.0" text="操作"/>
         </columns>
     </TableView>

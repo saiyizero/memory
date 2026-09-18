@@ -18,6 +18,7 @@ import com.murong.ecp.tools.fx.infrastructure.view.BizDictEditingCell;
 import com.murong.ecp.tools.fx.infrastructure.view.BizDictSelectionDialog;
 import com.murong.ecp.tools.fx.infrastructure.utils.PinyinFilterUtil;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
+import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -85,6 +86,8 @@ public class PaneApiController implements Initializable {
     @Autowired
     private UserProjSettingRpcService projectSettingRpcService;
 
+    private InterFaceEntity editingEntity;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         methodComboBox.setItems(FXCollections.observableArrayList("GET", "POST", "PUT", "DELETE"));
@@ -141,6 +144,7 @@ public class PaneApiController implements Initializable {
         // 查询接口详情
         InterFaceEntity entity = interFaceEntityService.getByTransName(transName, null);
         if (entity == null) return;
+        editingEntity = entity;
         apiNameField.setText(entity.getTransName());
         if (entity.getProperties() != null) {
             String interfaceUrl = entity.getProperties().getInterfaceUrl();
@@ -176,24 +180,109 @@ public class PaneApiController implements Initializable {
     }
 
     @FXML
-    private void saveApi() {
-        String apiName = apiNameField.getText();
-        if (StringUtils.isBlank(apiName)) {
-            System.out.println("接口名称不能为空");
+    public void saveApi() {
+        commitTreeEdits(requestTable);
+        commitTreeEdits(responseTable);
+
+        String transName = StringUtils.trimToNull(apiNameField.getText());
+        if (StringUtils.isBlank(transName)) {
+            ViewUtils.alertForFail("接口名称不能为空");
             return;
         }
-        InterfaceDataPO api = new InterfaceDataPO();
-        api.setInterfaceName(apiName);
-        api.setInterfaceUrl(apiPathField.getText());
-        api.setTransCommentZh(apiDescField.getText());
-        api.setMethodUrl(methodComboBox.getValue());
-        // TODO: 保存参数列表
-        // TODO: 保存到数据库或服务
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("成功");
-        alert.setHeaderText(null);
-        alert.setContentText("保存成功！");
-        alert.showAndWait();
+
+        try {
+            InterFaceEntity entity = editingEntity != null ? editingEntity : new InterFaceEntity();
+            entity.setTransName(transName);
+            if (StringUtils.isBlank(entity.getInterfaceName())) {
+                entity.setInterfaceName(transName);
+            }
+            if (StringUtils.isBlank(entity.getClassName())) {
+                entity.setClassName(transName);
+            }
+            if (StringUtils.isBlank(entity.getSimpleName())) {
+                entity.setSimpleName(transName);
+            }
+            entity.setTransCommentZh(StringUtils.trimToNull(apiDescField.getText()));
+
+            InterFaceEntity.Properties properties = entity.getProperties();
+            if (properties == null) {
+                properties = new InterFaceEntity.Properties();
+                entity.setProperties(properties);
+            }
+            properties.setMethodUrl(StringUtils.trimToNull(apiPathField.getText()));
+            properties.setInterfaceUrl(null);
+
+            entity.setRequest(collectFields(requestTable));
+            entity.setResponse(collectFields(responseTable));
+
+            CrResult result = interFaceEntityService.saveInterFaceEntity(entity);
+            if (result == null || !result.isSucess()) {
+                ViewUtils.alertForFail("保存失败: " + (result == null ? "未知错误" : StringUtils.defaultString(result.getMsgInf())));
+                return;
+            }
+            ViewUtils.alertForSucess("保存成功");
+            backToTransaction();
+        } catch (Exception e) {
+            e.printStackTrace();
+            ViewUtils.alertForFail("保存失败: " + e.getMessage());
+        }
+    }
+
+    private void commitTreeEdits(TreeTableView<BizFieldVo> table) {
+        if (table != null && table.getEditingCell() != null) {
+            table.edit(-1, null);
+        }
+    }
+
+    private List<RxField> collectFields(TreeTableView<BizFieldVo> table) {
+        if (table == null || table.getRoot() == null) {
+            return new ArrayList<>();
+        }
+        return collectFieldChildren(table.getRoot());
+    }
+
+    private List<RxField> collectFieldChildren(TreeItem<BizFieldVo> parent) {
+        List<RxField> fields = new ArrayList<>();
+        for (TreeItem<BizFieldVo> child : parent.getChildren()) {
+            BizFieldVo vo = child.getValue();
+            if (vo == null || vo.isEmptyRow() || StringUtils.isBlank(vo.getFieldId())) {
+                continue;
+            }
+            RxField field = new RxField();
+            field.setNameCamel(vo.getFieldId().trim());
+            field.setNameSnake(toSnake(field.getNameCamel()));
+            String type = StringUtils.trimToNull(vo.getType());
+            field.setType("请选择".equals(type) ? "String" : type);
+            field.setCommentCn(StringUtils.trimToNull(vo.getRemark()));
+            field.setCommentEn(StringUtils.trimToNull(vo.getEnglishRemark()));
+            field.setNotNull(vo.isRequired());
+            field.setEnumNme(StringUtils.trimToNull(vo.getEnumValues()));
+            field.setLength(parseLength(vo.getLength()));
+            List<RxField> children = collectFieldChildren(child);
+            if (!children.isEmpty()) {
+                field.setChildren(children);
+            }
+            fields.add(field);
+        }
+        return fields;
+    }
+
+    private Integer parseLength(String length) {
+        if (StringUtils.isBlank(length)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(length.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String toSnake(String camel) {
+        if (StringUtils.isBlank(camel)) {
+            return camel;
+        }
+        return camel.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase();
     }
 
     @FXML
@@ -1561,6 +1650,7 @@ public class PaneApiController implements Initializable {
      * 清空API字段，用于新增接口
      */
     private void clearApiFields() {
+        editingEntity = null;
         apiNameField.clear();
         apiPathField.clear();
         apiDescField.clear();
@@ -1828,6 +1918,8 @@ public class PaneApiController implements Initializable {
                 ViewUtils.alertForFail("未找到选中的API详情数据");
                 return;
             }
+
+            editingEntity = null;
             
             // 克隆API数据
             String clonedName = selectedApi.getTransName() + "_clone";

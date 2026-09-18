@@ -11,6 +11,7 @@ import com.murong.ecp.tools.fx.infrastructure.repository.po.EnumDictPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataHisPO;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class InterFaceEntityService {
             po.setAppName(globalProps.getAppName());
             po.setProjectName(globalProps.getProjectName());
             po.setGroupName(globalProps.getGroupName());
+            po.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
 
             InterfaceDataHisPO hisPO = new InterfaceDataHisPO();
             hisPO.setAppName(po.getAppName());
@@ -63,13 +65,27 @@ public class InterFaceEntityService {
             hisPO.setTransName(po.getTransName());
 
             InterfaceDataHisPO interfaceDataHisPO = interfaceDataHisRpcService.queryInfcDataHis(hisPO);
-            if(interfaceDataHisPO != null && (StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentEn())
-                    ||StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentZh()))) {
-                po.setTransCommentEn(interfaceDataHisPO.getTransCommentEn());
-                po.setTransCommentZh(interfaceDataHisPO.getTransCommentZh());
+            if (interfaceDataHisPO != null) {
+                if (StringUtils.isBlank(po.getTransCommentZh()) && StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentZh())) {
+                    po.setTransCommentZh(interfaceDataHisPO.getTransCommentZh());
+                }
+                if (StringUtils.isBlank(po.getTransCommentEn()) && StringUtils.isNotBlank(interfaceDataHisPO.getTransCommentEn())) {
+                    po.setTransCommentEn(interfaceDataHisPO.getTransCommentEn());
+                }
             }
 
-            interfaceDataRpcService.save(po);
+            InterfaceDataPO where = new InterfaceDataPO();
+            where.setGroupName(po.getGroupName());
+            where.setProjectName(po.getProjectName());
+            where.setAppName(po.getAppName());
+            where.setClassName(po.getClassName());
+            where.setTransName(po.getTransName());
+            InterfaceDataPO existing = interfaceDataRpcService.queryOne(where);
+            if (existing == null) {
+                interfaceDataRpcService.insert(po);
+            } else {
+                interfaceDataRpcService.updateByOne(po, where);
+            }
             return CrResult.setSuccessFailure(SuccessFailureEnum.SUCCESS);
         } catch (Exception e) {
             CrResult crResult = CrResult.setSuccessFailure(SuccessFailureEnum.FAILURE);

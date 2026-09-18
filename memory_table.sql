@@ -193,6 +193,7 @@ CREATE TABLE mmapi.interface_data (
     update_by varchar(64),
     update_time varchar(64),
     app_name varchar(32) NOT NULL,
+    status varchar(8),
     lable_name varchar(64),
     associat_entity varchar(512),
     associat_enum varchar(512),
@@ -504,6 +505,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_common_class_tmp_audit_id ON mmapi.common_
 ALTER TABLE mmapi.common_class_tmp REPLICA IDENTITY FULL;
 
 CREATE TABLE IF NOT EXISTS mmapi.interface_data_tmp (LIKE mmapi.interface_data INCLUDING DEFAULTS);
+ALTER TABLE mmapi.interface_data ADD COLUMN IF NOT EXISTS status varchar(8);
+ALTER TABLE mmapi.interface_data_tmp ADD COLUMN IF NOT EXISTS status varchar(8);
 ALTER TABLE mmapi.interface_data_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
 ALTER TABLE mmapi.interface_data_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_interface_data_tmp_audit_id ON mmapi.interface_data_tmp (audit_id);

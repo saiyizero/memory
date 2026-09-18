@@ -17,7 +17,7 @@ public class InterfaceDataDao extends DaoSupport<InterfaceDataPO> {
      */
     private static final String LIST_COLUMNS =
             "group_name, project_name, app_name, interface_name, trans_name, class_name, " +
-            "trans_comment_zh, trans_comment_en, interface_url, method_url, lable_name, associat_enum";
+            "trans_comment_zh, trans_comment_en, interface_url, method_url, lable_name, associat_enum, status";
 
     public void save(InterfaceDataPO po) {
         super.insert(po);

@@ -8,6 +8,7 @@ import com.murong.ecp.tools.fx.domain.service.interfaces.JavaCodeService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.InterFaceEntityService;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.CrResult;
 import com.murong.ecp.tools.fx.infrastructure.rpc.InterfaceDataRpcService;
+import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.enums.SuccessFailureEnum;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.InterfaceDataPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
@@ -173,7 +174,13 @@ public class PaneTransactionController implements Initializable {
         setCopyableCellFactory(transCommentZhColumn, InterfaceDataPO::getTransCommentZh);
         setCopyableCellFactory(transCommentEnColumn, InterfaceDataPO::getTransCommentEn);
         setCopyableCellFactory(interfaceNameColumn, InterfaceDataPO::getInterfaceName);
-        setCopyableCellFactoryCentered(statusColumn, po -> "已上线");  // 接口状态列居中
+        setCopyableCellFactoryCentered(statusColumn, po -> {
+            if (po == null || po.getStatus() == null || po.getStatus().isBlank()) {
+                return "";
+            }
+            DataStatusEnum statusEnum = DataStatusEnum.getByCode(po.getStatus());
+            return statusEnum != null ? statusEnum.getDesc() : po.getStatus();
+        });
         setCopyableCellFactory(urlColumn, po -> po.getMethodUrl());
 
         // 操作列：添加按钮
