@@ -1,6 +1,7 @@
 package com.murong.ecp.tools.fx.infrastructure.repository;
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import com.murong.ecp.tools.fx.domain.service.audit.AuditRecordWriter;
 import com.murong.ecp.tools.fx.enums.DiffTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.annotation.JTable;
 import com.murong.ecp.tools.fx.infrastructure.utils.MrDateUtils;
@@ -8,6 +9,7 @@ import com.murong.ecp.tools.fx.infrastructure.utils.MrSpringContextHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,10 @@ public class GenericJdbcDao {
     @Autowired
     @Qualifier("businessJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    @Lazy
+    private AuditRecordWriter auditRecordWriter;
 
     public int updateBySql(String sql, Object... params) {
         if (params == null || params.length == 0) {
@@ -70,6 +76,7 @@ public class GenericJdbcDao {
     }
 
     public void insert(Object entity) {
+        auditInsert(entity);
         GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
@@ -111,6 +118,7 @@ public class GenericJdbcDao {
     }
 
     public void delete(Object entity) {
+        auditDelete(entity);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -183,6 +191,7 @@ public class GenericJdbcDao {
     }
 
     public void updateByOne(Object updateEntity, Object whereEntity) {
+        auditUpdate(updateEntity, whereEntity);
         Class<?> clazz = updateEntity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -237,6 +246,42 @@ public class GenericJdbcDao {
         System.arraycopy(setParams, 0, realParams, 0, setIdx);
         System.arraycopy(whereParams, 0, realParams, setIdx, whereIdx);
         jdbcTemplate.update(sql, realParams);
+    }
+
+    private void auditInsert(Object entity) {
+        if (auditRecordWriter != null && auditRecordWriter.isAuditable(entity)) {
+            auditRecordWriter.onInsert(entity);
+        }
+    }
+
+    private void auditUpdate(Object updateEntity, Object whereEntity) {
+        if (auditRecordWriter == null || !auditRecordWriter.isAuditable(updateEntity)) {
+            return;
+        }
+        Object oldEntity = null;
+        try {
+            oldEntity = queryOne(whereEntity);
+        } catch (Exception ignored) {
+        }
+        auditRecordWriter.onUpdate(oldEntity, updateEntity);
+    }
+
+    private void auditDelete(Object entity) {
+        if (auditRecordWriter == null || !auditRecordWriter.isAuditable(entity)) {
+            return;
+        }
+        List<?> oldList = List.of();
+        try {
+            oldList = queryForList(entity, null);
+        } catch (Exception ignored) {
+        }
+        if (oldList == null || oldList.isEmpty()) {
+            auditRecordWriter.onDelete(entity);
+            return;
+        }
+        for (Object old : oldList) {
+            auditRecordWriter.onDelete(old);
+        }
     }
 
     private Object unwrapEnum(Object value) {

@@ -2,6 +2,7 @@ package com.murong.ecp.tools.fx.enums;
 
 public enum UuidTypEnum {
     TABLE_REC("TAB", "表更新记录ID"),
+    AUDIT_REC("ADT", "待审核记录ID"),
     ;
 
     private final String key;

@@ -441,3 +441,31 @@ CREATE TABLE mmapi.user_proj_setting (
     update_time varchar(64),
     CONSTRAINT user_proj_setting_pkey PRIMARY KEY (group_name, project_name, app_name, user_id, username)
 );
+
+
+CREATE TABLE mmapi.audit_record (
+    id varchar(64) NOT NULL,
+    group_name varchar(64),
+    project_name varchar(64),
+    app_name varchar(32),
+    biz_type varchar(32) NOT NULL,
+    biz_key varchar(512) NOT NULL,
+    biz_name varchar(256),
+    oper_type varchar(16) NOT NULL,
+    audit_status varchar(8) NOT NULL,
+    old_data text,
+    new_data text,
+    submit_by varchar(64),
+    submit_time varchar(64),
+    audit_by varchar(64),
+    audit_time varchar(64),
+    audit_remark varchar(512),
+    update_by varchar(64),
+    update_time varchar(64),
+    CONSTRAINT audit_record_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_audit_record_status ON mmapi.audit_record USING btree (audit_status);
+CREATE INDEX idx_audit_record_biz ON mmapi.audit_record USING btree (biz_type, biz_key);
+CREATE INDEX idx_audit_record_group ON mmapi.audit_record USING btree (group_name, project_name, app_name);
+CREATE INDEX idx_audit_record_submit_time ON mmapi.audit_record USING btree (submit_time);

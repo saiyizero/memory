@@ -2,6 +2,7 @@ package com.murong.ecp.tools.fx.infrastructure.repository;
 
 
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
+import com.murong.ecp.tools.fx.domain.service.audit.AuditRecordWriter;
 import com.murong.ecp.tools.fx.enums.DiffTypeEnum;
 import com.murong.ecp.tools.fx.infrastructure.annotation.JTable;
 import com.murong.ecp.tools.fx.infrastructure.utils.JsonFormatUtil;
@@ -27,6 +28,10 @@ public class DaoSupport <T> {
     @Qualifier("businessJdbcTemplate")
     @Lazy
     public JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    @Lazy
+    private AuditRecordWriter auditRecordWriter;
 
     public int updateBySql(String sql){
         logWithCaller("[SQL-UPDATE] " + sql);
@@ -66,6 +71,7 @@ public class DaoSupport <T> {
     }
 
     public void delete(T entity) {
+        auditDelete(entity);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -182,6 +188,7 @@ public class DaoSupport <T> {
     }
 
     public void insert(T entity) {
+        auditInsert(entity);
         GlobalProperties globalPropts = MrSpringContextHolder.getBean(GlobalProperties.class);
         Class<?> clazz = entity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
@@ -237,6 +244,7 @@ public class DaoSupport <T> {
     }
 
     public void updateByOne(T updateEntity, T whereEntity) {
+        auditUpdate(updateEntity, whereEntity);
         Class<?> clazz = updateEntity.getClass();
         JTable table = clazz.getAnnotation(JTable.class);
         if (table == null) throw new RuntimeException("缺少JTable注解");
@@ -324,6 +332,42 @@ public class DaoSupport <T> {
             return jdbcTemplate.queryForList(sql);
         }
         return jdbcTemplate.queryForList(sql, params);
+    }
+
+    private void auditInsert(T entity) {
+        if (auditRecordWriter != null && auditRecordWriter.isAuditable(entity)) {
+            auditRecordWriter.onInsert(entity);
+        }
+    }
+
+    private void auditUpdate(T updateEntity, T whereEntity) {
+        if (auditRecordWriter == null || !auditRecordWriter.isAuditable(updateEntity)) {
+            return;
+        }
+        T oldEntity = null;
+        try {
+            oldEntity = queryOne(whereEntity);
+        } catch (Exception ignored) {
+        }
+        auditRecordWriter.onUpdate(oldEntity, updateEntity);
+    }
+
+    private void auditDelete(T entity) {
+        if (auditRecordWriter == null || !auditRecordWriter.isAuditable(entity)) {
+            return;
+        }
+        List<T> oldList = List.of();
+        try {
+            oldList = queryForList(entity);
+        } catch (Exception ignored) {
+        }
+        if (oldList == null || oldList.isEmpty()) {
+            auditRecordWriter.onDelete(entity);
+            return;
+        }
+        for (T old : oldList) {
+            auditRecordWriter.onDelete(old);
+        }
     }
 
     /**
