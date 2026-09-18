@@ -72,7 +72,7 @@
             <VBox spacing="12" HBox.hgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity">
                 <HBox alignment="CENTER_LEFT" spacing="12">
                     <Label text="路径配置" styleClass="modern-label"/>
-                    <Button text="新增配置" styleClass="modern-button,modern-button-success" onAction="#addNewPathConfig">
+                    <Button fx:id="addPathConfigBtn" text="新增配置" styleClass="modern-button,modern-button-success" onAction="#addNewPathConfig">
                         <graphic>
                             <ImageView fitWidth="12" fitHeight="12">
                                 <Image url="@../image/remixB/apps-2-add-line.png"/>

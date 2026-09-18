@@ -6,6 +6,7 @@ import com.murong.ecp.tools.fx.domain.service.common.TranslationService;
 import com.murong.ecp.tools.fx.domain.service.structure.StructureService;
 import com.murong.ecp.tools.fx.enums.DirTypeEnum;
 import com.murong.ecp.tools.fx.enums.FlgEnum;
+import com.murong.ecp.tools.fx.enums.UserRoleEnum;
 import com.murong.ecp.tools.fx.infrastructure.msgcode.TranslationResult;
 import com.murong.ecp.tools.fx.infrastructure.rpc.ProjectFolderRpcService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.UserProjSettingRpcService;
@@ -50,6 +51,7 @@ public class PaneStructureController implements Initializable {
     @FXML private TableView<ProjectFolderPO> pathTableView;
     @FXML private Button translationNoteBtn;
     @FXML private Button scanDirectoryBtn;
+    @FXML private Button addPathConfigBtn;
     
     // 表格列
     @FXML private TableColumn<ProjectFolderPO, String> dirTypeColumn;
@@ -129,6 +131,8 @@ public class PaneStructureController implements Initializable {
         
         // 绑定事件处理
         bindEvents();
+
+        applyPermissionGuard();
         
         // 加载默认项目结构
         loadDefaultProjectStructure();
@@ -244,7 +248,7 @@ public class PaneStructureController implements Initializable {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
+                if (empty || !isCurrentUserManager()) {
                     setGraphic(null);
                 } else {
                     setGraphic(buttonBox);
@@ -255,9 +259,9 @@ public class PaneStructureController implements Initializable {
         // 设置表格数据
         pathTableView.setItems(pathTableData);
         
-        // 添加双击编辑功能
+        // 添加双击编辑功能（仅管理员）
         pathTableView.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
+            if (event.getClickCount() == 2 && isCurrentUserManager()) {
                 ProjectFolderPO selectedItem = pathTableView.getSelectionModel().getSelectedItem();
                 if (selectedItem != null) {
                     editProjectFolder(selectedItem);
@@ -301,6 +305,9 @@ public class PaneStructureController implements Initializable {
      * 编辑项目文件夹配置
      */
     private void editProjectFolder(ProjectFolderPO folder) {
+        if (!ensureManagerPermission("修改路径配置")) {
+            return;
+        }
         // 创建编辑对话框
         Dialog<ProjectFolderPO> dialog = new Dialog<>();
         dialog.setTitle("编辑路径配置");
@@ -472,6 +479,9 @@ public class PaneStructureController implements Initializable {
      * 删除项目文件夹配置
      */
     private void deleteProjectFolder(ProjectFolderPO folder) {
+        if (!ensureManagerPermission("删除路径配置")) {
+            return;
+        }
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("确认删除");
         alert.setHeaderText("删除路径配置");
@@ -500,6 +510,9 @@ public class PaneStructureController implements Initializable {
      */
     @FXML
     private void addNewPathConfig() {
+        if (!ensureManagerPermission("新增路径配置")) {
+            return;
+        }
         TreeItem<ProjectStructureNode> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
         if (selectedItem == null) {
             ViewUtils.alertForFail("请先选择一个模块或目录节点");
@@ -661,20 +674,41 @@ public class PaneStructureController implements Initializable {
      */
     private void loadProjectParams() {
         try {
-            // 从全局属性获取当前项目信息
             currentProjectName = globalPropes.getProjectName();
-            UserProjSettingPO query = new UserProjSettingPO();
-            query.setProjectName(currentProjectName);
-            query.setGroupName(globalPropes.getGroupName());
-            currentProject = projectSettingRpcService.queryOne(query);
-
-            if (currentProject!=null) {
+            currentProject = queryCurrentUserProject();
+            if (currentProject != null) {
                 updateUIWithProjectData(currentProject);
+            } else if (projectTitleLabel != null && currentProjectName != null) {
+                projectTitleLabel.setText(currentProjectName);
             }
         } catch (Exception e) {
             System.err.println("加载项目参数失败: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 查询当前登录用户在当前项目下的配置，避免按组/项目 queryOne 命中多用户记录。
+     */
+    private UserProjSettingPO queryCurrentUserProject() {
+        String groupName = globalPropes.getGroupName();
+        String projectName = currentProjectName != null ? currentProjectName : globalPropes.getProjectName();
+        if (groupName == null || groupName.isEmpty()) {
+            return null;
+        }
+        if (projectName != null && !projectName.isEmpty()) {
+            UserProjSettingPO query = new UserProjSettingPO();
+            query.setGroupName(groupName);
+            query.setProjectName(projectName);
+            if (globalPropes.getAppName() != null && !globalPropes.getAppName().isEmpty()) {
+                query.setAppName(globalPropes.getAppName());
+            }
+            List<UserProjSettingPO> list = projectSettingRpcService.queryForList(query);
+            if (list != null && !list.isEmpty()) {
+                return list.get(0);
+            }
+        }
+        return projectSettingRpcService.queryCurProject(groupName);
     }
     
     /**
@@ -701,23 +735,27 @@ public class PaneStructureController implements Initializable {
      * 绑定事件
      */
     private void bindEvents() {
-        // 选择目录按钮
+        // 选择目录按钮：所有用户均可使用
         editTitleBtn.setOnAction(event -> showDirectoryChooser());
         
         // 扫描目录按钮
         scanDirectoryBtn.setOnAction(event -> scanDirectoryAndGenerateData());
         
-        // 刷新结构按钮
+        // 注释翻译按钮
         translationNoteBtn.setOnAction(event -> translateComments());
         
         // 扫描目录输入框失去焦点时保存路径
         if (projectDescTextField != null) {
             projectDescTextField.focusedProperty().addListener((observable, oldValue, newValue) -> {
-                if (!newValue && currentProject != null) { // 失去焦点时
+                if (!newValue && currentProject != null) {
                     String newPath = projectDescTextField.getText();
-                    if (newPath != null && !newPath.trim().isEmpty() && 
+                    if (newPath != null && !newPath.trim().isEmpty() &&
                         !newPath.trim().equals(currentProject.getBasePath())) {
-                        saveScanDirectoryPath(newPath.trim());
+                        try {
+                            saveScanDirectoryPath(newPath.trim());
+                        } catch (Exception e) {
+                            ViewUtils.alertForFail("保存扫描目录失败: " + e.getMessage());
+                        }
                     }
                 }
             });
@@ -728,6 +766,9 @@ public class PaneStructureController implements Initializable {
      * 接口数据翻译功能
      */
     private void translateComments() {
+        if (!ensureManagerPermission("进行注释翻译")) {
+            return;
+        }
         try {
             // 显示翻译进度对话框
             ProgressBar progressBar = showTranslationProgressDialog(0);
@@ -935,6 +976,9 @@ public class PaneStructureController implements Initializable {
      * 扫描目录并生成数据
      */
     private void scanDirectoryAndGenerateData() {
+        if (!ensureManagerPermission("扫描目录")) {
+            return;
+        }
         try {
             if (currentProjectName == null || currentProjectName.isEmpty()) {
                 ViewUtils.alertForFail("项目名称未设置，请先配置项目参数");
@@ -987,23 +1031,44 @@ public class PaneStructureController implements Initializable {
     }
     
     /**
-     * 保存扫描目录路径到数据库
+     * 保存扫描目录路径到当前用户的项目配置
      */
     private void saveScanDirectoryPath(String basePath) {
-        try {
-            if (currentProject != null) {
-                UserProjSettingPO updateEntity = new UserProjSettingPO();
-                updateEntity.setBasePath(basePath);
-                updateEntity.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                updateEntity.setUpdateBy("system");
-                
-                projectSettingRpcService.updateByOne(updateEntity, currentProject);
-                currentProject.setBasePath(basePath);
-            }
-        } catch (Exception e) {
-            System.err.println("保存扫描目录路径失败: " + e.getMessage());
-            e.printStackTrace();
+        UserProjSettingPO where = buildCurrentUserProjectWhere();
+        if (where == null) {
+            throw new IllegalStateException("未找到当前用户的项目配置，请先联系管理员分配项目");
         }
+        UserProjSettingPO updateEntity = new UserProjSettingPO();
+        updateEntity.setBasePath(basePath);
+        updateEntity.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        if (globalPropes.getOperator() != null && globalPropes.getOperator().getUsername() != null) {
+            updateEntity.setUpdateBy(globalPropes.getOperator().getUsername());
+        } else {
+            updateEntity.setUpdateBy("system");
+        }
+        projectSettingRpcService.update(updateEntity, where);
+        if (currentProject != null) {
+            currentProject.setBasePath(basePath);
+        }
+        globalPropes.setBasePath(basePath);
+    }
+
+    private UserProjSettingPO buildCurrentUserProjectWhere() {
+        if (currentProject == null) {
+            currentProject = queryCurrentUserProject();
+        }
+        if (currentProject == null) {
+            return null;
+        }
+        UserProjSettingPO where = new UserProjSettingPO();
+        where.setGroupName(currentProject.getGroupName() != null ? currentProject.getGroupName() : globalPropes.getGroupName());
+        where.setProjectName(currentProject.getProjectName() != null ? currentProject.getProjectName() : currentProjectName);
+        if (currentProject.getAppName() != null && !currentProject.getAppName().isEmpty()) {
+            where.setAppName(currentProject.getAppName());
+        } else if (globalPropes.getAppName() != null && !globalPropes.getAppName().isEmpty()) {
+            where.setAppName(globalPropes.getAppName());
+        }
+        return where;
     }
     
     /**
@@ -1014,9 +1079,14 @@ public class PaneStructureController implements Initializable {
         directoryChooser.setTitle("选择项目根目录");
         directoryChooser.setInitialDirectory(new File(System.getProperty("user.home")));
         
-        // 如果当前有路径，设置为初始目录
+        String existingPath = null;
         if (currentProject != null && currentProject.getBasePath() != null && !currentProject.getBasePath().isEmpty()) {
-            File currentDir = new File(currentProject.getBasePath());
+            existingPath = currentProject.getBasePath();
+        } else if (globalPropes.getBasePath() != null && !globalPropes.getBasePath().isEmpty()) {
+            existingPath = globalPropes.getBasePath();
+        }
+        if (existingPath != null) {
+            File currentDir = new File(existingPath);
             if (currentDir.exists() && currentDir.isDirectory()) {
                 directoryChooser.setInitialDirectory(currentDir);
             }
@@ -1026,62 +1096,54 @@ public class PaneStructureController implements Initializable {
         
         if (selectedDirectory != null) {
             String selectedPath = selectedDirectory.getAbsolutePath();
-            
-            // 更新数据库
-            if (currentProject != null) {
-                try {
-                    UserProjSettingPO updateEntity = new UserProjSettingPO();
-                    updateEntity.setBasePath(selectedPath);
-                    updateEntity.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                    updateEntity.setUpdateBy("system");
-                    
-                    projectSettingRpcService.updateByOne(updateEntity, currentProject);
-                    currentProject.setBasePath(selectedPath);
-                    
-                    // 刷新界面上的扫描目录
-                    if (projectDescTextField != null) {
-                        projectDescTextField.setText(selectedPath);
-                    }
-                    
-                    ViewUtils.alertForSucess("扫描目录更新成功！");
-                } catch (Exception ex) {
-                    ViewUtils.alertForFail("更新失败: " + ex.getMessage());
+            try {
+                saveScanDirectoryPath(selectedPath);
+                if (projectDescTextField != null) {
+                    projectDescTextField.setText(selectedPath);
                 }
-            } else {
-                // 如果当前项目为空，先创建项目
-                createProjectWithBasePath(selectedPath);
+                ViewUtils.alertForSucess("扫描目录更新成功！");
+            } catch (Exception ex) {
+                ViewUtils.alertForFail("更新失败: " + ex.getMessage());
+                ex.printStackTrace();
             }
         }
     }
     
     /**
-     * 创建项目并设置基础路径
+     * 按角色控制项目结构页可操作按钮。
+     * 管理员可修改、删除、扫描、翻译；其他用户仅显示选择本地目录。
      */
-    private void createProjectWithBasePath(String basePath) {
-        try {
-            currentProject = new UserProjSettingPO();
-            currentProject.setProjectName(currentProjectName != null ? currentProjectName : "customer");
-            currentProject.setProjectDesc("DBS-数字银行");
-            currentProject.setProjectType("核心项目");
-            currentProject.setAppName("dbs");
-            currentProject.setSchemaNm("dbs");
-            currentProject.setBasePath(basePath);
-            currentProject.setUpdateBy("system");
-            currentProject.setUpdateTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            
-            projectSettingRpcService.insert(currentProject);
-            
-            // 刷新界面
-            if (projectDescTextField != null) {
-                projectDescTextField.setText(basePath);
-            }
-            
-            ViewUtils.alertForSucess("项目创建成功，扫描目录已设置！");
-        } catch (Exception e) {
-            ViewUtils.alertForFail("创建项目失败: " + e.getMessage());
-            e.printStackTrace();
+    private void applyPermissionGuard() {
+        boolean manager = isCurrentUserManager();
+        setAdminOnlyVisible(translationNoteBtn, manager);
+        setAdminOnlyVisible(scanDirectoryBtn, manager);
+        setAdminOnlyVisible(addPathConfigBtn, manager);
+        if (actionColumn != null) {
+            actionColumn.setVisible(manager);
         }
     }
-    
+
+    private void setAdminOnlyVisible(Button button, boolean manager) {
+        if (button == null) {
+            return;
+        }
+        button.setVisible(manager);
+        button.setManaged(manager);
+    }
+
+    private boolean ensureManagerPermission(String actionDesc) {
+        if (isCurrentUserManager()) {
+            return true;
+        }
+        ViewUtils.alertForFail("仅管理员可以" + actionDesc);
+        return false;
+    }
+
+    private boolean isCurrentUserManager() {
+        if (globalPropes == null || globalPropes.getOperator() == null) {
+            return false;
+        }
+        return UserRoleEnum.MANAGER.getCode().equalsIgnoreCase(globalPropes.getOperator().getRoles());
+    }
 
 } 
