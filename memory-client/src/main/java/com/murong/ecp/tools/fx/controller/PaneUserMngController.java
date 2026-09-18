@@ -1149,9 +1149,13 @@ public class PaneUserMngController implements Initializable {
 
         Button selectAllBtn = new Button("全选");
         Button clearAllBtn = new Button("全不选");
+        Button expandAllBtn = new Button("全部打开");
+        Button collapseAllBtn = new Button("全部折叠");
         selectAllBtn.setOnAction(e -> setAllAssignTreeSelected(root, true, syncing));
         clearAllBtn.setOnAction(e -> setAllAssignTreeSelected(root, false, syncing));
-        HBox toolbar = new HBox(8, selectAllBtn, clearAllBtn);
+        expandAllBtn.setOnAction(e -> setAssignTreeExpanded(root, true));
+        collapseAllBtn.setOnAction(e -> setAssignTreeExpanded(root, false));
+        HBox toolbar = new HBox(8, selectAllBtn, clearAllBtn, expandAllBtn, collapseAllBtn);
         toolbar.setAlignment(Pos.CENTER_LEFT);
 
         content.getChildren().addAll(userLabel, hintLabel, toolbar, treeView);
@@ -1186,6 +1190,29 @@ public class PaneUserMngController implements Initializable {
             }
         } finally {
             syncing[0] = false;
+        }
+    }
+
+    /**
+     * 展开或折叠分配项目树。根节点始终保持展开，避免隐藏根后整棵树消失。
+     */
+    private void setAssignTreeExpanded(TreeItem<ProjectAssignNode> root, boolean expanded) {
+        if (root == null) {
+            return;
+        }
+        root.setExpanded(true);
+        for (TreeItem<ProjectAssignNode> groupItem : root.getChildren()) {
+            setTreeItemExpandedRecursive(groupItem, expanded);
+        }
+    }
+
+    private void setTreeItemExpandedRecursive(TreeItem<ProjectAssignNode> item, boolean expanded) {
+        if (item == null || item.getChildren().isEmpty()) {
+            return;
+        }
+        item.setExpanded(expanded);
+        for (TreeItem<ProjectAssignNode> child : item.getChildren()) {
+            setTreeItemExpandedRecursive(child, expanded);
         }
     }
 
