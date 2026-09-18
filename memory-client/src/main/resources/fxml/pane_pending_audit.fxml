@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.murong.ecp.tools.fx.controller.PanePendingAuditController"
+      spacing="10" style="-fx-padding: 12.5 24 12.5 12.5;">
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="业务类型:"/>
+        <ComboBox fx:id="bizTypeCombo" prefWidth="150"/>
+        <Label text="操作类型:"/>
+        <ComboBox fx:id="operTypeCombo" prefWidth="110"/>
+        <Label text="审核状态:"/>
+        <ComboBox fx:id="statusCombo" prefWidth="110"/>
+        <Label text="关键字:"/>
+        <TextField fx:id="keywordField" promptText="对象名称 / 提交人" prefWidth="200"/>
+        <Button fx:id="queryButton" text="查询" onAction="#queryRecords"
+                style="-fx-background-color: #ff4d4f; -fx-text-fill: white;"/>
+        <Button fx:id="resetButton" text="重置" onAction="#resetQuery"/>
+        <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+            <Label fx:id="totalCountLabel" text="总数: 0" style="-fx-font-size: 12px; -fx-text-fill: #666;"/>
+        </HBox>
+    </HBox>
+
+    <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="bizTypeColumn" text="业务类型" prefWidth="120"/>
+            <TableColumn fx:id="bizNameColumn" text="对象名称" prefWidth="180"/>
+            <TableColumn fx:id="operTypeColumn" text="操作" prefWidth="70"/>
+            <TableColumn fx:id="auditStatusColumn" text="状态" prefWidth="80"/>
+            <TableColumn fx:id="submitByColumn" text="提交人" prefWidth="100"/>
+            <TableColumn fx:id="submitTimeColumn" text="提交时间" prefWidth="150"/>
+            <TableColumn fx:id="auditByColumn" text="审核人" prefWidth="100"/>
+            <TableColumn fx:id="auditTimeColumn" text="审核时间" prefWidth="150"/>
+            <TableColumn fx:id="actionColumn" text="操作" prefWidth="200"/>
+        </columns>
+    </TableView>
+</VBox>
