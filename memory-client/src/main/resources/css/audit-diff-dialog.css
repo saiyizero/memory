@@ -1,0 +1,103 @@
+.audit-diff-dialog {
+    -fx-background-color: #ffffff;
+}
+
+.audit-diff-dialog .table-view {
+    -fx-background-color: #ffffff;
+    -fx-table-cell-border-color: #d9d9d9;
+    -fx-border-color: #d9d9d9;
+}
+
+.audit-diff-dialog .table-view .column-header-background {
+    -fx-background-color: #f0f2f5;
+}
+
+.audit-diff-dialog .table-view .column-header,
+.audit-diff-dialog .table-view .filler {
+    -fx-background-color: #f0f2f5;
+    -fx-border-color: transparent transparent #d9d9d9 transparent;
+}
+
+.audit-diff-dialog .table-view .column-header .label {
+    -fx-text-fill: #1f1f1f;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.audit-diff-dialog .table-view .table-row-cell {
+    -fx-background-color: #ffffff;
+}
+
+.audit-diff-dialog .table-view .table-row-cell:odd {
+    -fx-background-color: #fafafa;
+}
+
+.audit-diff-dialog .table-view .table-row-cell:selected {
+    -fx-background-color: #e6f4ff;
+    -fx-table-cell-border-color: #d9d9d9;
+}
+
+.audit-diff-dialog .table-view .table-row-cell:selected .text {
+    -fx-fill: #1f1f1f;
+}
+
+.audit-diff-dialog .audit-diff-badge {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-background-radius: 11px;
+    -fx-padding: 3 10 3 10;
+}
+
+.audit-diff-dialog .audit-diff-badge-added {
+    -fx-background-color: #389e0d;
+}
+
+.audit-diff-dialog .audit-diff-badge-deleted {
+    -fx-background-color: #cf1322;
+}
+
+.audit-diff-dialog .audit-diff-badge-modified {
+    -fx-background-color: #d46b08;
+}
+
+.audit-diff-dialog .audit-diff-badge-unchanged {
+    -fx-background-color: #8c8c8c;
+}
+
+.audit-diff-dialog .audit-diff-field {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f1f1f;
+}
+
+.audit-diff-dialog .audit-diff-value {
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
+}
+
+.audit-diff-dialog .audit-diff-old {
+    -fx-background-color: #ffe8e6;
+    -fx-text-fill: #a8071a;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 6 8 6 8;
+}
+
+.audit-diff-dialog .audit-diff-new {
+    -fx-background-color: #e8f9e4;
+    -fx-text-fill: #135200;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 6 8 6 8;
+}
+
+.audit-diff-dialog .audit-diff-empty {
+    -fx-text-fill: #8c8c8c;
+    -fx-font-style: italic;
+}
+
+.audit-diff-dialog .audit-diff-plain {
+    -fx-text-fill: #262626;
+    -fx-padding: 6 8 6 8;
+}

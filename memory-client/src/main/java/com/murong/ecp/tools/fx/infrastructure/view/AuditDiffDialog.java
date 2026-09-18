@@ -207,57 +207,6 @@ public final class AuditDiffDialog {
         return tableView;
     }
 
-        TableColumn<DiffRow, String> typeCol = new TableColumn<>("差异");
-        typeCol.setPrefWidth(88);
-        typeCol.setMinWidth(80);
-        typeCol.setMaxWidth(96);
-        typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getChangeTypeDesc()));
-        typeCol.setCellFactory(col -> new TableCell<>() {
-            private final Label badge = new Label();
-
-            {
-                setAlignment(Pos.CENTER);
-            }
-
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                DiffRow row = rowOf(this);
-                if (empty || row == null) {
-                    setGraphic(null);
-                    setStyle("");
-                    return;
-                }
-                badge.setText(item);
-                badge.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-color: "
-                        + badgeColor(row.getChangeType()) + "; -fx-background-radius: 11; -fx-padding: 3 10 3 10;");
-                setGraphic(badge);
-                setStyle("-fx-alignment: CENTER; -fx-background-color: " + rowTint(row.getChangeType()) + ";");
-            }
-        });
-
-        TableColumn<DiffRow, String> fieldCol = new TableColumn<>("字段");
-        fieldCol.setPrefWidth(180);
-        fieldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getFieldLabel()));
-        fieldCol.setCellFactory(col -> valueCell(fieldCol, ValueSide.FIELD));
-
-        TableColumn<DiffRow, String> oldCol = new TableColumn<>("原数据");
-        oldCol.setPrefWidth(380);
-        oldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOldValue()));
-        oldCol.setCellFactory(col -> valueCell(oldCol, ValueSide.OLD));
-
-        TableColumn<DiffRow, String> newCol = new TableColumn<>("新数据");
-        newCol.setPrefWidth(380);
-        newCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNewValue()));
-        newCol.setCellFactory(col -> valueCell(newCol, ValueSide.NEW));
-
-        tableView.getColumns().add(typeCol);
-        tableView.getColumns().add(fieldCol);
-        tableView.getColumns().add(oldCol);
-        tableView.getColumns().add(newCol);
-        return tableView;
-    }
-
     private enum ValueSide {
         FIELD, OLD, NEW
     }

@@ -27,6 +27,7 @@
             <TableColumn fx:id="msgCdColumn" text="消息代码" prefWidth="80" />
             <TableColumn fx:id="msgDescCnColumn" text="中文描述" prefWidth="260" />
             <TableColumn fx:id="msgDescEnColumn" text="英文描述" prefWidth="260" />
+            <TableColumn fx:id="statusColumn" text="状态" prefWidth="80" />
             <TableColumn fx:id="actionColumn" text="操作" prefWidth="80" />
         </columns>
     </TableView>

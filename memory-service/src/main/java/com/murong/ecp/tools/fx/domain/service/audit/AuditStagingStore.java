@@ -42,11 +42,19 @@ public class AuditStagingStore {
             for (AuditBizTypeEnum type : AuditBizTypeEnum.values()) {
                 String official = type.officialTable();
                 String tmp = type.tmpTable();
+                if (type == AuditBizTypeEnum.INFO_CODE) {
+                    jdbcTemplate.execute("ALTER TABLE " + official + " ADD COLUMN IF NOT EXISTS status varchar(8)");
+                }
                 jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + tmp + " (LIKE " + official + " INCLUDING DEFAULTS)");
                 jdbcTemplate.execute("ALTER TABLE " + tmp + " ADD COLUMN IF NOT EXISTS audit_id varchar(64)");
                 jdbcTemplate.execute("ALTER TABLE " + tmp + " ADD COLUMN IF NOT EXISTS oper_type varchar(16)");
+                if (type == AuditBizTypeEnum.INFO_CODE) {
+                    jdbcTemplate.execute("ALTER TABLE " + tmp + " ADD COLUMN IF NOT EXISTS status varchar(8)");
+                }
                 jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_" + tmp + "_audit_id ON " + tmp + " (audit_id)");
                 jdbcTemplate.execute("ALTER TABLE " + tmp + " REPLICA IDENTITY FULL");
+                columnCache.remove(official);
+                columnCache.remove(tmp);
             }
             tablesReady = true;
         }

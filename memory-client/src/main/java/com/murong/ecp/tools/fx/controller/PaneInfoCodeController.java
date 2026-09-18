@@ -3,6 +3,7 @@ package com.murong.ecp.tools.fx.controller;
 import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.TranslationService;
 import com.murong.ecp.tools.fx.domain.service.interfaces.MsgCodeService;
+import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import com.murong.ecp.tools.fx.infrastructure.rpc.BizMsgInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.ViewUtils;
@@ -56,6 +57,7 @@ public class PaneInfoCodeController {
     @FXML private TableColumn<BizMsgInfoPO, String> msgCdColumn;
     @FXML private TableColumn<BizMsgInfoPO, String> msgDescCnColumn;
     @FXML private TableColumn<BizMsgInfoPO, String> msgDescEnColumn;
+    @FXML private TableColumn<BizMsgInfoPO, String> statusColumn;
     @FXML private TableColumn<BizMsgInfoPO, Void> actionColumn;
 
     private ObservableList<BizMsgInfoPO> dataList = FXCollections.observableArrayList();
@@ -81,6 +83,15 @@ public class PaneInfoCodeController {
         setCopyableCellFactory(msgCdColumn, po -> po.getMsgCd() != null ? po.getMsgCd() : "", true);
         setCopyableCellFactory(msgDescCnColumn, BizMsgInfoPO::getMsgDescCn, false);
         setCopyableCellFactory(msgDescEnColumn, BizMsgInfoPO::getMsgDescEn, false);
+        statusColumn.setCellValueFactory(cellData -> {
+            String statusCode = cellData.getValue() == null ? null : cellData.getValue().getStatus();
+            if (StringUtils.isBlank(statusCode)) {
+                return new SimpleStringProperty("");
+            }
+            DataStatusEnum statusEnum = DataStatusEnum.getByCode(statusCode);
+            return new SimpleStringProperty(statusEnum != null ? statusEnum.getDesc() : statusCode);
+        });
+        statusColumn.setStyle("-fx-alignment: center;");
         
         // 设置操作列
         setupActionColumn();
@@ -367,6 +378,27 @@ public class PaneInfoCodeController {
             e.printStackTrace();
         }
     }
+
+    private String suggestedMsgClass() {
+        String abbr = StringUtils.trimToEmpty(globalPropes.getAppName());
+        if (abbr.isEmpty()) {
+            return "MsgCd";
+        }
+        return abbr + "MsgCd";
+    }
+
+    private String resolveComboText(ComboBox<String> comboBox) {
+        if (comboBox == null) {
+            return "";
+        }
+        if (comboBox.isEditable() && comboBox.getEditor() != null) {
+            String typed = StringUtils.trimToEmpty(comboBox.getEditor().getText());
+            if (!typed.isEmpty()) {
+                return typed;
+            }
+        }
+        return comboBox.getValue() != null ? comboBox.getValue().trim() : "";
+    }
     
     /**
      * 显示新增消息对话框
@@ -431,13 +463,17 @@ public class PaneInfoCodeController {
             msgClassComboBox.setStyle("-fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-padding: 0; -fx-min-height: 28px; -fx-pref-height: 28px; -fx-max-height: 28px; -fx-font-size: 13px; -fx-background-color: #f8f9fa; -fx-text-fill: #495057; -fx-opacity: 0.8;");
             msgClassComboBox.setValue(existingMsg.getMsgClass());
         } else {
-            // 新增模式：可编辑
-            msgClassComboBox.setStyle("-fx-background-radius: 0; -fx-border-radius: 0; -fx-border-color: transparent; -fx-border-width: 0; -fx-padding: 0; -fx-min-height: 28px; -fx-pref-height: 28px; -fx-max-height: 28px; -fx-font-size: 13px;");
-            // 加载消息分类下拉框数据
+            msgClassComboBox.setEditable(true);
+            msgClassComboBox.setStyle("-fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #dee2e6; -fx-border-width: 1; -fx-padding: 0; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; -fx-font-size: 13px;");
             loadMsgClassOptions(msgClassComboBox);
-            // 设置默认值为第一个选项
             if (!msgClassComboBox.getItems().isEmpty()) {
                 msgClassComboBox.setValue(msgClassComboBox.getItems().get(0));
+            } else {
+                String hint = suggestedMsgClass();
+                msgClassComboBox.setPromptText("请输入消息分类，如：" + hint);
+                if (msgClassComboBox.getEditor() != null) {
+                    msgClassComboBox.getEditor().setPromptText("请输入消息分类，如：" + hint);
+                }
             }
         }
         
@@ -591,7 +627,7 @@ public class PaneInfoCodeController {
         // 设置保存按钮的点击事件
         saveButton.setOnAction(event -> {
             // 验证必填字段
-            String msgClass = msgClassComboBox.getValue() != null ? msgClassComboBox.getValue().trim() : "";
+            String msgClass = resolveComboText(msgClassComboBox);
             String msgKey = msgKeyField.getText().trim();
             String msgCd = msgCdField.getText().trim();
             String msgDescCn = msgDescCnField.getText().trim();
@@ -625,6 +661,7 @@ public class PaneInfoCodeController {
             resultMsg.setMsgCd(msgCd);
             resultMsg.setMsgDescCn(msgDescCn);
             resultMsg.setMsgDescEn(msgDescEn);
+            resultMsg.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             // 如果是编辑模式，保留原有的其他字段
             if (isEditMode) {

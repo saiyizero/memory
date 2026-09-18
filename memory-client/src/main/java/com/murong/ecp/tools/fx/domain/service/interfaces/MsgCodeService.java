@@ -4,6 +4,7 @@ import com.murong.ecp.tools.fx.domain.entity.GlobalProperties;
 import com.murong.ecp.tools.fx.domain.service.common.TranslationService;
 import com.murong.ecp.tools.fx.infrastructure.rpc.BizMsgInfoRpcService;
 import com.murong.ecp.tools.fx.infrastructure.repository.po.BizMsgInfoPO;
+import com.murong.ecp.tools.fx.enums.DataStatusEnum;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -218,6 +219,8 @@ public class MsgCodeService {
         msgInfo.setGroupName(globalPropes.getGroupName());
         msgInfo.setProjectName(globalPropes.getProjectName());
         msgInfo.setAppName(globalPropes.getAppName());
+        fillMsgClassMeta(msgInfo);
+        msgInfo.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
         try {
             // 检查消息键是否已存在
             BizMsgInfoPO queryPO = new BizMsgInfoPO();
@@ -290,6 +293,8 @@ public class MsgCodeService {
             if (existingMsg == null) {
                 throw new RuntimeException("要修改的消息不存在");
             }
+
+            msgInfo.setStatus(DataStatusEnum.WAIT_AUDIT.getCode());
             
             // 执行修改
             bizMsgInfoRpcService.updateByOne(msgInfo, queryPO);
@@ -345,6 +350,75 @@ public class MsgCodeService {
         } catch (Exception e) {
             throw new RuntimeException("删除消息失败: " + e.getMessage(), e);
         }
+    }
+
+    private void fillMsgClassMeta(BizMsgInfoPO msgInfo) {
+        if (msgInfo == null || StringUtils.isBlank(msgInfo.getMsgClass())) {
+            return;
+        }
+        if (StringUtils.isNotBlank(msgInfo.getMsgRef()) && StringUtils.isNotBlank(msgInfo.getModuleName())) {
+            return;
+        }
+        String msgClass = msgInfo.getMsgClass().trim();
+        BizMsgInfoPO query = new BizMsgInfoPO();
+        query.setGroupName(msgInfo.getGroupName());
+        query.setProjectName(msgInfo.getProjectName());
+        query.setMsgClass(msgClass);
+        List<BizMsgInfoPO> existing = bizMsgInfoRpcService.queryForList(query);
+        if (existing != null) {
+            for (BizMsgInfoPO row : existing) {
+                if (row == null) {
+                    continue;
+                }
+                if (StringUtils.isBlank(msgInfo.getMsgRef()) && StringUtils.isNotBlank(row.getMsgRef())) {
+                    msgInfo.setMsgRef(row.getMsgRef());
+                }
+                if (StringUtils.isBlank(msgInfo.getModuleName()) && StringUtils.isNotBlank(row.getModuleName())) {
+                    msgInfo.setModuleName(row.getModuleName());
+                }
+                if (StringUtils.isNotBlank(msgInfo.getMsgRef())) {
+                    break;
+                }
+            }
+        }
+        GlobalProperties.CrMsgCode matched = findMsgCodeConfig(msgClass);
+        if (matched != null) {
+            if (StringUtils.isBlank(msgInfo.getMsgRef())) {
+                String url = matched.getUrl();
+                if (url.endsWith(msgClass)) {
+                    msgInfo.setMsgRef(url);
+                } else {
+                    msgInfo.setMsgRef(url + "." + msgClass);
+                }
+            }
+            if (StringUtils.isBlank(msgInfo.getModuleName())) {
+                msgInfo.setModuleName(matched.getBasePath());
+            }
+        }
+        if (StringUtils.isBlank(msgInfo.getMsgRef())) {
+            msgInfo.setMsgRef(msgClass);
+        }
+    }
+
+    private GlobalProperties.CrMsgCode findMsgCodeConfig(String msgClass) {
+        List<GlobalProperties.CrMsgCode> msgCodes = globalPropes.getMsgCodes();
+        if (msgCodes == null || msgCodes.isEmpty()) {
+            return null;
+        }
+        GlobalProperties.CrMsgCode fallback = null;
+        for (GlobalProperties.CrMsgCode msgCode : msgCodes) {
+            if (msgCode == null || StringUtils.isBlank(msgCode.getUrl())) {
+                continue;
+            }
+            String url = msgCode.getUrl();
+            if (url.endsWith(msgClass) || url.endsWith("." + msgClass)) {
+                return msgCode;
+            }
+            if (fallback == null) {
+                fallback = msgCode;
+            }
+        }
+        return fallback;
     }
 
     /**

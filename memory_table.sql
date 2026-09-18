@@ -51,6 +51,7 @@ CREATE TABLE mmapi.biz_msg_info (
     msg_desc_cn varchar(256),
     msg_desc_en varchar(256),
     app_name varchar(32) NOT NULL,
+    status varchar(8),
     update_by varchar(64),
     update_time varchar(64),
     CONSTRAINT biz_msg_info_pkey PRIMARY KEY (group_name, project_name, app_name, msg_class, msg_ref, msg_key)
@@ -489,6 +490,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_biz_dict_tmp_audit_id ON mmapi.biz_dict_tm
 ALTER TABLE mmapi.biz_dict_tmp REPLICA IDENTITY FULL;
 
 CREATE TABLE IF NOT EXISTS mmapi.biz_msg_info_tmp (LIKE mmapi.biz_msg_info INCLUDING DEFAULTS);
+ALTER TABLE mmapi.biz_msg_info ADD COLUMN IF NOT EXISTS status varchar(8);
+ALTER TABLE mmapi.biz_msg_info_tmp ADD COLUMN IF NOT EXISTS status varchar(8);
 ALTER TABLE mmapi.biz_msg_info_tmp ADD COLUMN IF NOT EXISTS audit_id varchar(64);
 ALTER TABLE mmapi.biz_msg_info_tmp ADD COLUMN IF NOT EXISTS oper_type varchar(16);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_biz_msg_info_tmp_audit_id ON mmapi.biz_msg_info_tmp (audit_id);

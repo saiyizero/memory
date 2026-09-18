@@ -19,6 +19,7 @@ public class BizMsgInfoPO {
     private String msgDescCn;        // 消息中文描述
     private String msgDescEn;        // 消息英文描述
     private String appName;          // 应用名称
+    private String status;           // 数据状态
     private String updateBy;         // 更新人
     private String updateTime;       // 更新时间
 } 

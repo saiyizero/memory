@@ -35,20 +35,35 @@ public class GenericDaoApplicService {
 
     @PostMapping("/insert")
     public RpcDaoResponse insert(@RequestBody RpcDaoRequest request) {
-        genericJdbcDao.insert(toEntity(request));
-        return RpcDaoResponse.ok(null);
+        try {
+            genericJdbcDao.insert(toEntity(request));
+            return RpcDaoResponse.ok(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RpcDaoResponse.fail("新增失败: " + rootMessage(e));
+        }
     }
 
     @PostMapping("/delete")
     public RpcDaoResponse delete(@RequestBody RpcDaoRequest request) {
-        genericJdbcDao.delete(toEntity(request));
-        return RpcDaoResponse.ok(null);
+        try {
+            genericJdbcDao.delete(toEntity(request));
+            return RpcDaoResponse.ok(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RpcDaoResponse.fail("删除失败: " + rootMessage(e));
+        }
     }
 
     @PostMapping("/update")
     public RpcDaoResponse update(@RequestBody RpcDaoRequest request) {
-        genericJdbcDao.updateByOne(toEntity(request), toWhereEntity(request));
-        return RpcDaoResponse.ok(null);
+        try {
+            genericJdbcDao.updateByOne(toEntity(request), toWhereEntity(request));
+            return RpcDaoResponse.ok(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RpcDaoResponse.fail("更新失败: " + rootMessage(e));
+        }
     }
 
     @PostMapping("/queryOne")
@@ -166,5 +181,13 @@ public class GenericDaoApplicService {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("无法加载类型: " + className, e);
         }
+    }
+
+    private String rootMessage(Throwable error) {
+        Throwable current = error;
+        while (current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        return StringUtils.defaultIfBlank(current.getMessage(), error.getMessage());
     }
 }
