@@ -271,13 +271,8 @@
                             <artifactId>javafx-base</artifactId>
                         </dependency>
                     </requiresUnpack>
-                    <!-- 添加JavaFX特定的配置 -->
-                    <jvmArguments>
-                        <jvmArgument>-Dprism.order=sw</jvmArgument>
-                        <jvmArgument>-Djavafx.platform=mac</jvmArgument>
-                        <jvmArgument>-Dprism.forceGPU=false</jvmArgument>
-                        <jvmArgument>-Dprism.allowSoftwareGL=true</jvmArgument>
-                    </jvmArguments>
+                    <!-- 添加JavaFX特定的配置，spring-boot:run 要求 jvmArguments 为字符串 -->
+                    <jvmArguments>-Dprism.order=sw -Djavafx.platform=mac -Dprism.forceGPU=false -Dprism.allowSoftwareGL=true</jvmArguments>
                 </configuration>
                 <executions>
                     <execution>

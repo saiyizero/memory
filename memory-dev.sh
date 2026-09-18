@@ -86,6 +86,8 @@ cmd_stop() {
   stop_by_pattern "spring-boot:run .*-pl memory-service"
   stop_by_pattern "-pl memory-client .*spring-boot:run"
   stop_by_pattern "-pl memory-service .*spring-boot:run"
+  stop_by_pattern "memory-client/pom.xml .*spring-boot:run"
+  stop_by_pattern "memory-service/pom.xml .*spring-boot:run"
   if command -v lsof >/dev/null 2>&1; then
     local port_pids
     port_pids="$(lsof -ti tcp:"${SERVICE_PORT}" 2>/dev/null || true)"
@@ -110,10 +112,10 @@ start_service() {
     return 0
   fi
   need_cmd mvn
-  log "编译依赖模块 ..."
-  mvn -f "${ROOT_DIR}/pom.xml" -pl memory-service,memory-client -am -DskipTests compile
+  log "安装依赖模块到本地仓库 ..."
+  mvn -f "${ROOT_DIR}/pom.xml" -pl memory-lib,memory-common -am -DskipTests install
   log "启动 memory-service ..."
-  nohup mvn -f "${ROOT_DIR}/pom.xml" -pl memory-service spring-boot:run \
+  nohup mvn -f "${ROOT_DIR}/memory-service/pom.xml" -DskipTests spring-boot:run \
     > "${RUN_DIR}/service.log" 2>&1 &
   echo $! > "${RUN_DIR}/service.mvn.pid"
   log "memory-service Maven PID=$(cat "${RUN_DIR}/service.mvn.pid")，日志: ${RUN_DIR}/service.log"
@@ -128,7 +130,7 @@ start_client_fg() {
     return 0
   fi
   log "启动 memory-client ..."
-  mvn -f "${ROOT_DIR}/pom.xml" -pl memory-client spring-boot:run
+  mvn -f "${ROOT_DIR}/memory-client/pom.xml" -DskipTests spring-boot:run
 }
 
 cmd_start() {
