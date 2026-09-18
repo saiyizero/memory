@@ -79,6 +79,9 @@ public final class AuditJsonDiffUtil {
         keys.addAll(newMap.keySet());
         List<DiffRow> rows = new ArrayList<>();
         for (String key : keys) {
+            if (isIgnoredField(key)) {
+                continue;
+            }
             String oldValue = oldMap.get(key);
             String newValue = newMap.get(key);
             ChangeType changeType;
@@ -213,5 +216,21 @@ public final class AuditJsonDiffUtil {
             return;
         }
         result.put(key, value == null ? "" : value);
+    }
+
+    private static boolean isIgnoredField(String key) {
+        if (StringUtils.isBlank(key)) {
+            return true;
+        }
+        String leaf = key;
+        int dot = key.lastIndexOf('.');
+        if (dot >= 0 && dot < key.length() - 1) {
+            leaf = key.substring(dot + 1);
+        }
+        int bracket = leaf.indexOf('[');
+        if (bracket >= 0) {
+            leaf = leaf.substring(0, bracket);
+        }
+        return "status".equals(leaf);
     }
 }

@@ -7,12 +7,14 @@ import com.murong.ecp.tools.fx.infrastructure.repository.po.AuditRecordPO;
 import com.murong.ecp.tools.fx.infrastructure.utils.AuditJsonDiffUtil;
 import com.murong.ecp.tools.fx.infrastructure.utils.AuditJsonDiffUtil.ChangeType;
 import com.murong.ecp.tools.fx.infrastructure.utils.AuditJsonDiffUtil.DiffRow;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -26,9 +28,11 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -128,6 +132,7 @@ public final class AuditDiffDialog {
             Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
             stage.setMinWidth(900);
             stage.setMinHeight(520);
+            tableView.refresh();
         });
         dialog.showAndWait();
     }
@@ -147,7 +152,6 @@ public final class AuditDiffDialog {
             private final Label badge = new Label();
 
             {
-                badge.getStyleClass().add("audit-diff-badge");
                 setAlignment(Pos.CENTER);
             }
 
@@ -161,7 +165,6 @@ public final class AuditDiffDialog {
                     return;
                 }
                 badge.setText(item);
-                badge.getStyleClass().setAll("audit-diff-badge", badgeClass(row.getChangeType()));
                 badge.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-color: "
                         + badgeColor(row.getChangeType()) + "; -fx-background-radius: 11; -fx-padding: 3 10 3 10;");
                 setGraphic(badge);
@@ -172,17 +175,81 @@ public final class AuditDiffDialog {
         TableColumn<DiffRow, String> fieldCol = new TableColumn<>("字段");
         fieldCol.setPrefWidth(180);
         fieldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getFieldLabel()));
-        fieldCol.setCellFactory(col -> valueCell(ValueSide.FIELD));
+        fieldCol.setCellFactory(col -> valueCell(fieldCol, ValueSide.FIELD));
 
         TableColumn<DiffRow, String> oldCol = new TableColumn<>("原数据");
         oldCol.setPrefWidth(380);
         oldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOldValue()));
-        oldCol.setCellFactory(col -> valueCell(ValueSide.OLD));
+        oldCol.setCellFactory(col -> valueCell(oldCol, ValueSide.OLD));
 
         TableColumn<DiffRow, String> newCol = new TableColumn<>("新数据");
         newCol.setPrefWidth(380);
         newCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNewValue()));
-        newCol.setCellFactory(col -> valueCell(ValueSide.NEW));
+        newCol.setCellFactory(col -> valueCell(newCol, ValueSide.NEW));
+
+        tableView.getColumns().add(typeCol);
+        tableView.getColumns().add(fieldCol);
+        tableView.getColumns().add(oldCol);
+        tableView.getColumns().add(newCol);
+        tableView.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected double computePrefHeight(double width) {
+                DiffRow item = getItem();
+                if (isEmpty() || item == null) {
+                    return 36;
+                }
+                double fieldH = measureTextHeight(item.getFieldLabel(), fieldCol.getWidth());
+                double oldH = measureTextHeight(item.getOldValue(), oldCol.getWidth());
+                double newH = measureTextHeight(item.getNewValue(), newCol.getWidth());
+                return Math.max(36, Math.max(fieldH, Math.max(oldH, newH)) + 20);
+            }
+        });
+        return tableView;
+    }
+
+        TableColumn<DiffRow, String> typeCol = new TableColumn<>("差异");
+        typeCol.setPrefWidth(88);
+        typeCol.setMinWidth(80);
+        typeCol.setMaxWidth(96);
+        typeCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getChangeTypeDesc()));
+        typeCol.setCellFactory(col -> new TableCell<>() {
+            private final Label badge = new Label();
+
+            {
+                setAlignment(Pos.CENTER);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                DiffRow row = rowOf(this);
+                if (empty || row == null) {
+                    setGraphic(null);
+                    setStyle("");
+                    return;
+                }
+                badge.setText(item);
+                badge.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-color: "
+                        + badgeColor(row.getChangeType()) + "; -fx-background-radius: 11; -fx-padding: 3 10 3 10;");
+                setGraphic(badge);
+                setStyle("-fx-alignment: CENTER; -fx-background-color: " + rowTint(row.getChangeType()) + ";");
+            }
+        });
+
+        TableColumn<DiffRow, String> fieldCol = new TableColumn<>("字段");
+        fieldCol.setPrefWidth(180);
+        fieldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getFieldLabel()));
+        fieldCol.setCellFactory(col -> valueCell(fieldCol, ValueSide.FIELD));
+
+        TableColumn<DiffRow, String> oldCol = new TableColumn<>("原数据");
+        oldCol.setPrefWidth(380);
+        oldCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOldValue()));
+        oldCol.setCellFactory(col -> valueCell(oldCol, ValueSide.OLD));
+
+        TableColumn<DiffRow, String> newCol = new TableColumn<>("新数据");
+        newCol.setPrefWidth(380);
+        newCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNewValue()));
+        newCol.setCellFactory(col -> valueCell(newCol, ValueSide.NEW));
 
         tableView.getColumns().add(typeCol);
         tableView.getColumns().add(fieldCol);
@@ -195,14 +262,20 @@ public final class AuditDiffDialog {
         FIELD, OLD, NEW
     }
 
-    private static TableCell<DiffRow, String> valueCell(ValueSide side) {
+    private static TableCell<DiffRow, String> valueCell(TableColumn<DiffRow, String> column, ValueSide side) {
         return new TableCell<>() {
-            private final Label label = new Label();
+            private final Text text = new Text();
+            private final VBox box = new VBox(text);
 
             {
-                label.setWrapText(true);
-                label.setMaxWidth(Double.MAX_VALUE);
-                label.setMinHeight(Region.USE_PREF_SIZE);
+                box.setAlignment(Pos.CENTER_LEFT);
+                box.setPadding(new Insets(8, 10, 8, 10));
+                box.setFillWidth(true);
+                text.setTextOrigin(VPos.TOP);
+                text.wrappingWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+                    double width = column.getWidth() - 28;
+                    return Math.max(80, width);
+                }, column.widthProperty()));
             }
 
             @Override
@@ -212,25 +285,18 @@ public final class AuditDiffDialog {
                 if (empty || row == null) {
                     setGraphic(null);
                     setStyle("");
+                    setPrefHeight(USE_COMPUTED_SIZE);
                     return;
                 }
                 boolean blank = StringUtils.isBlank(item);
-                label.setText(blank ? "（空）" : item);
-                label.getStyleClass().setAll("label", "audit-diff-value");
-                label.getStyleClass().add(valueClass(row.getChangeType(), side, blank));
-                if (side == ValueSide.FIELD) {
-                    label.getStyleClass().add("audit-diff-field");
-                }
-                label.setStyle("-fx-text-fill: " + valueTextColor(row.getChangeType(), side, blank)
-                        + "; -fx-font-size: 13px; -fx-font-weight: " + (side == ValueSide.FIELD ? "bold" : "normal") + ";");
-                StackPane box = new StackPane(label);
-                box.setAlignment(Pos.CENTER_LEFT);
-                box.setPadding(new Insets(4, 6, 4, 6));
-                box.setMinHeight(36);
-                box.setMaxWidth(Double.MAX_VALUE);
-                box.setStyle("-fx-background-color: " + valueBackground(row.getChangeType(), side, blank) + "; -fx-background-radius: 4;");
+                text.setText(blank ? "（空）" : item);
+                text.setFill(Color.web(valueTextColor(row.getChangeType(), side, blank)));
+                text.setFont(Font.font("System", side == ValueSide.FIELD ? FontWeight.BOLD : FontWeight.NORMAL, 13));
+                box.setStyle("-fx-background-color: " + valueBackground(row.getChangeType(), side, blank)
+                        + "; -fx-background-radius: 4;");
                 setGraphic(box);
-                setStyle("-fx-background-color: " + rowTint(row.getChangeType()) + "; -fx-padding: 4;");
+                setStyle("-fx-background-color: " + rowTint(row.getChangeType()) + "; -fx-padding: 2 4 2 4;");
+                setPrefHeight(USE_COMPUTED_SIZE);
             }
         };
     }
@@ -248,13 +314,11 @@ public final class AuditDiffDialog {
         return null;
     }
 
-    private static String badgeClass(ChangeType type) {
-        return switch (type) {
-            case ADDED -> "audit-diff-badge-added";
-            case DELETED -> "audit-diff-badge-deleted";
-            case MODIFIED -> "audit-diff-badge-modified";
-            case UNCHANGED -> "audit-diff-badge-unchanged";
-        };
+    private static double measureTextHeight(String value, double columnWidth) {
+        Text probe = new Text(StringUtils.isBlank(value) ? "（空）" : value);
+        probe.setFont(Font.font("System", 13));
+        probe.setWrappingWidth(Math.max(80, columnWidth - 28));
+        return probe.getLayoutBounds().getHeight();
     }
 
     private static String badgeColor(ChangeType type) {
@@ -273,22 +337,6 @@ public final class AuditDiffDialog {
             case MODIFIED -> "#fff7e6";
             case UNCHANGED -> "transparent";
         };
-    }
-
-    private static String valueClass(ChangeType type, ValueSide side, boolean blank) {
-        if (side == ValueSide.FIELD) {
-            return "audit-diff-field";
-        }
-        if (blank || type == ChangeType.UNCHANGED) {
-            return blank ? "audit-diff-empty" : "audit-diff-plain";
-        }
-        if (side == ValueSide.OLD && (type == ChangeType.MODIFIED || type == ChangeType.DELETED)) {
-            return "audit-diff-old";
-        }
-        if (side == ValueSide.NEW && (type == ChangeType.MODIFIED || type == ChangeType.ADDED)) {
-            return "audit-diff-new";
-        }
-        return "audit-diff-empty";
     }
 
     private static String valueBackground(ChangeType type, ValueSide side, boolean blank) {
